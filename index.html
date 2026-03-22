@@ -17,13 +17,15 @@ var manifestData = {
   "name": "Task Dashboard",
   "short_name": "Tasks",
   "start_url": "/Tasks/",
+  "scope": "/Tasks/",
   "display": "standalone",
   "background_color": "#f4f4f7",
   "theme_color": "#4f46e5",
   "icons": [{
     "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'%3E%3Crect width='192' height='192' rx='40' fill='%234f46e5'/%3E%3Cpath d='M48 96l32 32L144 64' stroke='white' stroke-width='16' stroke-linecap='round' fill='none'/%3E%3C/svg%3E",
     "sizes": "192x192",
-    "type": "image/svg+xml"
+    "type": "image/svg+xml",
+    "purpose": "any maskable"
   }]
 };
 var manifestBlob = new Blob([JSON.stringify(manifestData)], {type: 'application/json'});
@@ -972,6 +974,7 @@ function showAuthScreen() {
 
 function hideAuthScreen() {
   document.getElementById('auth-screen').style.display = 'none';
+  document.getElementById('loading').style.display = 'flex';
   var aw = document.getElementById('app-wrapper');
   if (aw) aw.style.display = 'block';
 }
@@ -1817,6 +1820,12 @@ function init() {
   purgeStaleTrashedItems();
   autoArchiveCompletedTasks();
   checkRecurringTasks();
+  // always reset to dashboard view on init
+  showingNotes    = false;
+  showingSettings = false;
+  document.getElementById('dashboard-view').style.display = 'block';
+  document.getElementById('settings-view').style.display  = 'none';
+  document.getElementById('notes-view').style.display     = 'none';
   renderSidebarLabels();
   renderStatusFilterDropdown();
   renderBulkStatusDropdown();
@@ -1825,6 +1834,7 @@ function init() {
   renderSettingsPage();
   renderNotes();
   updateNotesCount();
+  updateTopbar();
   var nd = document.getElementById('notes-date');
   if (nd) nd.textContent = today.toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
 }
@@ -3110,9 +3120,7 @@ var pdEl = document.getElementById('page-date'); if (pdEl) pdEl.textContent = to
 
 // ── PWA ─────────────────────────────────────────────────
 if ('serviceWorker' in navigator) {
-  var swContent = ["const CACHE='tasks-v3';","self.addEventListener('install',function(e){self.skipWaiting();});","self.addEventListener('activate',function(e){self.clients.claim();});","self.addEventListener('fetch',function(e){if(e.request.url.includes('jsonbin.io')||e.request.url.includes('fonts.googleapis')){e.respondWith(fetch(e.request).catch(function(){return caches.match(e.request);}));return;}e.respondWith(caches.match(e.request).then(function(r){return r||fetch(e.request);}));});"].join('\n');
-  var swBlob = new Blob([swContent],{type:'application/javascript'});
-  navigator.serviceWorker.register(URL.createObjectURL(swBlob)).catch(function(){});
+  navigator.serviceWorker.register('/Tasks/sw.js').catch(function(){});
 }
 var deferredPrompt = null;
 window.addEventListener('beforeinstallprompt', function(e) {
