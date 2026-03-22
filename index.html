@@ -10,29 +10,8 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="Tasks">
-<link rel="manifest" id="pwa-manifest">
-<script>
-// Create manifest as a Blob so Chrome accepts it properly
-var manifestData = {
-  "name": "Task Dashboard",
-  "short_name": "Tasks",
-  "start_url": "/Tasks/",
-  "scope": "/Tasks/",
-  "display": "standalone",
-  "background_color": "#f4f4f7",
-  "theme_color": "#4f46e5",
-  "icons": [{
-    "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'%3E%3Crect width='192' height='192' rx='40' fill='%234f46e5'/%3E%3Cpath d='M48 96l32 32L144 64' stroke='white' stroke-width='16' stroke-linecap='round' fill='none'/%3E%3C/svg%3E",
-    "sizes": "192x192",
-    "type": "image/svg+xml",
-    "purpose": "any maskable"
-  }]
-};
-var manifestBlob = new Blob([JSON.stringify(manifestData)], {type: 'application/json'});
-var manifestURL = URL.createObjectURL(manifestBlob);
-document.getElementById('pwa-manifest').setAttribute('href', manifestURL);
-</script>
-<link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'%3E%3Crect width='192' height='192' rx='40' fill='%234f46e5'/%3E%3Cpath d='M48 96l32 32L144 64' stroke='white' stroke-width='16' stroke-linecap='round' fill='none'/%3E%3C/svg%3E">
+<link rel="manifest" href="/Tasks/manifest.json">
+<link rel="apple-touch-icon" href="/Tasks/icon-192.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=Syne:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
