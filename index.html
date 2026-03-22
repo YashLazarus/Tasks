@@ -403,7 +403,7 @@ tr.recurring-row td:nth-child(2){border-bottom:1px solid rgba(13,148,136,0.4)}
 .toast.show{transform:translateX(-50%) translateY(0);opacity:1}
 
 /* AUTH */
-.auth-screen{position:fixed;inset:0;background:var(--bg);z-index:400;display:flex;align-items:center;justify-content:center;padding:1.5rem}
+.auth-screen{position:fixed;inset:0;background:var(--bg);z-index:400;display:none;align-items:center;justify-content:center;padding:1.5rem}
 .auth-card{background:var(--surface);border:1px solid var(--border2);border-radius:20px;padding:2.5rem 2rem;width:380px;max-width:100%;animation:slideUp .25s ease}
 .auth-logo{display:flex;align-items:center;gap:10px;margin-bottom:2rem;justify-content:center}
 .auth-logo-dot{width:10px;height:10px;background:var(--accent);border-radius:50%}
@@ -487,6 +487,7 @@ tr.recurring-row td:nth-child(2){border-bottom:1px solid rgba(13,148,136,0.4)}
   <div class="loading-text">Syncing tasks...</div>
 </div>
 
+<div id="app-wrapper" style="display:none">
 <div class="topbar" id="topbar">
   <button class="hamburger" id="topbar-left-btn" onclick="handleTopbarLeft()">
     <svg id="topbar-left-icon" width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M3 5h14M3 10h14M3 15h14" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
@@ -962,11 +963,15 @@ function clearCredentials() {
 function showAuthScreen() {
   document.getElementById('auth-screen').style.display = 'flex';
   document.getElementById('loading').style.display = 'none';
+  var aw = document.getElementById('app-wrapper');
+  if (aw) aw.style.display = 'none';
   setTimeout(function(){ document.getElementById('auth-email').focus(); }, 100);
 }
 
 function hideAuthScreen() {
   document.getElementById('auth-screen').style.display = 'none';
+  var aw = document.getElementById('app-wrapper');
+  if (aw) aw.style.display = 'block';
 }
 
 function toggleAuthMode() {
@@ -3104,7 +3109,7 @@ document.getElementById('page-date').textContent = today.toLocaleDateString('en-
 
 // ── PWA ─────────────────────────────────────────────────
 if ('serviceWorker' in navigator) {
-  var swContent = ["const CACHE='tasks-v2';","self.addEventListener('install',function(e){self.skipWaiting();});","self.addEventListener('activate',function(e){self.clients.claim();});","self.addEventListener('fetch',function(e){if(e.request.url.includes('jsonbin.io')||e.request.url.includes('fonts.googleapis')){e.respondWith(fetch(e.request).catch(function(){return caches.match(e.request);}));return;}e.respondWith(caches.match(e.request).then(function(r){return r||fetch(e.request);}));});"].join('\n');
+  var swContent = ["const CACHE='tasks-v3';","self.addEventListener('install',function(e){self.skipWaiting();});","self.addEventListener('activate',function(e){self.clients.claim();});","self.addEventListener('fetch',function(e){if(e.request.url.includes('jsonbin.io')||e.request.url.includes('fonts.googleapis')){e.respondWith(fetch(e.request).catch(function(){return caches.match(e.request);}));return;}e.respondWith(caches.match(e.request).then(function(r){return r||fetch(e.request);}));});"].join('\n');
   var swBlob = new Blob([swContent],{type:'application/javascript'});
   navigator.serviceWorker.register(URL.createObjectURL(swBlob)).catch(function(){});
 }
@@ -3133,5 +3138,6 @@ if (!currentUser) {
   loadFromCloud();
 }
 </script>
+</div><!-- end app-wrapper -->
 </body>
 </html>
