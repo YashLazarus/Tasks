@@ -3120,7 +3120,9 @@ var pdEl = document.getElementById('page-date'); if (pdEl) pdEl.textContent = to
 
 // ── PWA ─────────────────────────────────────────────────
 if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('/Tasks/sw.js').catch(function(){});
+  navigator.serviceWorker.register('/Tasks/sw.js?v=4').then(function(reg) {
+    reg.update(); // always check for SW updates on load
+  }).catch(function(){});
 }
 var deferredPrompt = null;
 window.addEventListener('beforeinstallprompt', function(e) {
