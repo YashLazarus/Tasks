@@ -28,9 +28,70 @@
   --mono:'DM Mono',monospace;--sans:'Syne',sans-serif;
   --sidebar:220px;
 }
+html.dark{
+  --bg:#0f0f14;--surface:#17171f;--surface2:#1e1e28;
+  --border:#2a2a38;--border2:#363648;
+  --text:#e8e8f2;--muted:#8888a8;--faint:#1e1e28;
+  --accent:#6366f1;--accent-dim:rgba(99,102,241,0.15);
+  --red:#f87171;--red-dim:rgba(248,113,113,0.12);
+  --amber:#fbbf24;--amber-dim:rgba(251,191,36,0.12);
+  --blue:#60a5fa;--blue-dim:rgba(96,165,250,0.12);
+  --green:#34d399;--green-dim:rgba(52,211,153,0.12);
+  --purple:#a78bfa;--purple-dim:rgba(167,139,250,0.12);
+  color-scheme:dark;
+}
+html:not(.dark){ color-scheme:light; }
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 html{font-size:16px}
-body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:100vh;display:flex}
+body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:100vh;display:flex;transition:background .2s,color .2s}
+
+/* DARK MODE TOGGLE */
+.dark-toggle{display:flex;align-items:center;justify-content:space-between;padding:.85rem 1rem;background:var(--surface2);border-radius:12px;border:1px solid var(--border);cursor:pointer;user-select:none;transition:background .15s}
+.dark-toggle:hover{background:var(--faint)}
+.dark-toggle-label{display:flex;align-items:center;gap:10px;font-size:.9rem;font-weight:500;color:var(--text)}
+.dark-toggle-icon{width:36px;height:20px;background:var(--border2);border-radius:20px;position:relative;transition:background .25s;flex-shrink:0}
+.dark-toggle-icon.on{background:var(--accent)}
+.dark-toggle-icon::after{content:'';position:absolute;width:14px;height:14px;background:#fff;border-radius:50%;top:3px;left:3px;transition:transform .25s;box-shadow:0 1px 3px rgba(0,0,0,.2)}
+.dark-toggle-icon.on::after{transform:translateX(16px)}
+
+/* SETTINGS SECTIONS — reorganised */
+.settings-group{margin-bottom:2rem}
+.settings-group-title{font-family:var(--mono);font-size:.65rem;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;margin-bottom:.75rem;padding:0 .25rem;display:flex;align-items:center;gap:8px}
+.settings-group-title::after{content:'';flex:1;height:1px;background:var(--border)}
+
+/* TRASH */
+.trash-empty{text-align:center;padding:3rem 2rem;color:var(--muted);font-size:.88rem}
+.trash-item{display:flex;align-items:flex-start;gap:10px;padding:.85rem 1rem;background:var(--surface2);border-radius:10px;border:1px solid var(--border);margin-bottom:8px;transition:border-color .15s}
+.trash-item:hover{border-color:var(--border2)}
+.trash-item-info{flex:1;min-width:0}
+.trash-item-name{font-weight:600;font-size:.88rem;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.trash-item-meta{font-family:var(--mono);font-size:.65rem;color:var(--muted);margin-top:3px;display:flex;gap:8px;flex-wrap:wrap}
+.trash-item-tag{font-family:var(--mono);font-size:.62rem;padding:1px 7px;border-radius:20px;font-weight:500}
+.trash-item-tag.auto{background:var(--amber-dim);color:var(--amber)}
+.trash-item-tag.manual{background:var(--faint);color:var(--muted)}
+.trash-item-tag.note{background:var(--blue-dim);color:var(--blue)}
+.trash-actions{display:flex;gap:6px;align-items:center;flex-shrink:0}
+.trash-restore-btn{background:var(--green-dim);color:var(--green);border:none;border-radius:8px;font-family:var(--sans);font-size:.75rem;font-weight:600;padding:.35rem .75rem;cursor:pointer;transition:opacity .15s;white-space:nowrap}
+.trash-restore-btn:hover{opacity:.8}
+.trash-del-btn{background:var(--red-dim);color:var(--red);border:none;border-radius:8px;font-family:var(--sans);font-size:.75rem;font-weight:600;padding:.35rem .75rem;cursor:pointer;transition:opacity .15s;white-space:nowrap}
+.trash-del-btn:hover{opacity:.8}
+.trash-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;flex-wrap:wrap;gap:8px}
+.trash-count{font-family:var(--mono);font-size:.75rem;color:var(--muted)}
+.empty-trash-btn{background:transparent;color:var(--red);border:1px solid rgba(220,38,38,0.3);border-radius:8px;font-family:var(--sans);font-size:.78rem;font-weight:600;padding:.4rem .85rem;cursor:pointer;transition:all .15s}
+.empty-trash-btn:hover{background:var(--red-dim)}
+
+/* CONFIRM DIALOG */
+.confirm-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:250;display:none;align-items:center;justify-content:center;padding:1rem}
+.confirm-backdrop.open{display:flex}
+.confirm-dialog{background:var(--surface);border:1px solid var(--border2);border-radius:18px;padding:1.75rem;width:360px;max-width:100%;animation:slideUp .2s ease}
+.confirm-title{font-size:1rem;font-weight:700;color:var(--text);margin-bottom:.5rem}
+.confirm-desc{font-size:.85rem;color:var(--muted);line-height:1.5;margin-bottom:1.5rem}
+.confirm-actions{display:flex;flex-direction:column;gap:8px}
+.confirm-btn{width:100%;padding:.7rem 1rem;border-radius:10px;font-family:var(--sans);font-size:.85rem;font-weight:600;cursor:pointer;border:none;transition:opacity .15s}
+.confirm-btn:hover{opacity:.85}
+.confirm-btn.danger{background:var(--red);color:#fff}
+.confirm-btn.warning{background:var(--amber);color:#fff}
+.confirm-btn.neutral{background:var(--surface2);color:var(--text);border:1px solid var(--border2)}
 
 /* ── SIDEBAR ── */
 .sidebar{width:var(--sidebar);min-height:100vh;background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;padding:1.5rem 1rem;position:fixed;top:0;left:0;bottom:0;z-index:50;overflow-y:auto;transition:transform .25s ease}
@@ -244,7 +305,6 @@ tbody tr.sel-row td{background:rgba(79,70,229,0.05)}
 
 /* SETTINGS PAGE */
 .settings-page{display:none}
-.settings-page.active{display:block}
 .settings-section{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:1.5rem;margin-bottom:1.5rem}
 .settings-section-title{font-size:1rem;font-weight:600;margin-bottom:.25rem}
 .settings-section-desc{font-size:.8rem;color:var(--muted);margin-bottom:1.25rem}
@@ -318,7 +378,7 @@ tr.p-row-low    td:first-child{border-left:4px solid var(--blue)}
 .recur-badge{display:inline-flex;align-items:center;gap:4px;font-family:var(--mono);font-size:.68rem;font-weight:500;padding:2px 8px;border-radius:20px;background:rgba(13,148,136,0.12);color:#0d9488;white-space:nowrap;margin-top:2px}
 tr.recurring-row td:nth-child(2){border-bottom:1px solid rgba(13,148,136,0.4)}
 .task-card.recurring-card{border-top:3px solid rgba(13,148,136,0.5)}
-.toast{position:fixed;bottom:1.5rem;left:50%;transform:translateX(-50%) translateY(60px);background:var(--text);border-radius:10px;padding:.6rem 1.2rem;font-size:.8rem;color:#fff;font-family:var(--mono);z-index:200;transition:transform .25s ease,opacity .25s;opacity:0;pointer-events:none;white-space:nowrap}
+.toast{position:fixed;bottom:1.5rem;left:50%;transform:translateX(-50%) translateY(60px);background:#1e1e2e;border:1px solid rgba(255,255,255,0.1);border-radius:10px;padding:.6rem 1.2rem;font-size:.8rem;color:#f0f0f5;font-family:var(--mono);z-index:200;transition:transform .25s ease,opacity .25s;opacity:0;pointer-events:none;white-space:nowrap;box-shadow:0 4px 20px rgba(0,0,0,0.4)}
 .toast.show{transform:translateX(-50%) translateY(0);opacity:1}
 
 /* LOADING */
@@ -541,55 +601,103 @@ tr.recurring-row td:nth-child(2){border-bottom:1px solid rgba(13,148,136,0.4)}
     <div class="page-header">
       <div>
         <div class="page-title">Settings</div>
-        <div class="page-date">Manage sync, statuses and labels</div>
-
-    <!-- SYNC -->
-    <div class="settings-section">
-      <div class="settings-section-title">Cloud Sync</div>
-      <div class="settings-section-desc">Connect to JSONBin to sync your tasks across devices. Get your free credentials at <a href="https://jsonbin.io" target="_blank" style="color:var(--accent)">jsonbin.io</a></div>
-      <div class="form-row">
-        <label>Bin ID</label>
-        <input type="text" class="settings-add-input" id="sync-bin-id" placeholder="e.g. 69bbf570b7ec241ddc8211bc" style="width:100%;font-family:var(--mono);font-size:.82rem">
+        <div class="page-date">Customise your experience</div>
       </div>
-      <div class="form-row" style="margin-top:.75rem">
-        <label>X-Master-Key</label>
-        <div style="position:relative">
-          <input type="password" class="settings-add-input" id="sync-api-key" placeholder="$2a$10$..." style="width:100%;font-family:var(--mono);font-size:.82rem;padding-right:2.5rem">
-          <button onclick="toggleKeyVisibility()" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--muted);display:flex;align-items:center" id="key-vis-btn" title="Show/hide key">
-            <svg id="key-vis-icon" width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M1 8s2.5-5 7-5 7 5 7 5-2.5 5-7 5-7-5-7-5z" stroke="currentColor" stroke-width="1.4"/><circle cx="8" cy="8" r="2" stroke="currentColor" stroke-width="1.4"/></svg>
-          </button>
+    </div>
+
+    <!-- GROUP: GENERAL -->
+    <div class="settings-group">
+      <div class="settings-group-title">
+        <svg width="13" height="13" viewBox="0 0 13 13" fill="none"><circle cx="6.5" cy="6.5" r="5" stroke="currentColor" stroke-width="1.4"/><path d="M6.5 4v2.5L8 8" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
+        General
+      </div>
+      <div class="settings-section">
+        <div class="dark-toggle" onclick="toggleDarkMode()" id="dark-toggle-row">
+          <div class="dark-toggle-label">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M8 1v1M8 14v1M1 8h1M14 8h1M3.05 3.05l.7.7M12.25 12.25l.7.7M3.05 12.95l.7-.7M12.25 3.75l.7-.7M11 8A3 3 0 1 1 5 8a3 3 0 0 1 6 0z" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
+            Dark Mode
+          </div>
+          <div class="dark-toggle-icon" id="dark-toggle-icon"></div>
         </div>
       </div>
-      <div style="display:flex;gap:8px;margin-top:1rem;flex-wrap:wrap">
-        <button class="settings-add-btn" onclick="saveSyncCredentials()">Save &amp; Connect</button>
-        <button class="settings-add-btn" style="background:transparent;color:var(--red);border:1px solid rgba(220,38,38,0.3)" onclick="disconnectSync()">Disconnect</button>
-      </div>
-      <div id="sync-settings-status" style="margin-top:.85rem;font-family:var(--mono);font-size:.75rem;display:flex;align-items:center;gap:6px;color:var(--muted)"></div>
     </div>
+
+    <!-- GROUP: CLOUD SYNC -->
+    <div class="settings-group">
+      <div class="settings-group-title">
+        <svg width="13" height="13" viewBox="0 0 13 13" fill="none"><path d="M10 9a2.5 2.5 0 0 0 0-5 3.5 3.5 0 0 0-6.8 1A2 2 0 1 0 3 9h7z" stroke="currentColor" stroke-width="1.3"/></svg>
+        Cloud Sync
+      </div>
+      <div class="settings-section">
+        <div class="settings-section-desc" style="margin-bottom:1rem">Connect to JSONBin to sync across devices. Get credentials at <a href="https://jsonbin.io" target="_blank" style="color:var(--accent)">jsonbin.io</a></div>
+        <div class="form-row">
+          <label>Bin ID</label>
+          <input type="text" class="settings-add-input" id="sync-bin-id" placeholder="e.g. 69bbf570b7ec241ddc8211bc" style="width:100%;font-family:var(--mono);font-size:.82rem">
+        </div>
+        <div class="form-row" style="margin-top:.75rem">
+          <label>X-Master-Key</label>
+          <div style="position:relative">
+            <input type="password" class="settings-add-input" id="sync-api-key" placeholder="$2a$10$..." style="width:100%;font-family:var(--mono);font-size:.82rem;padding-right:2.5rem">
+            <button onclick="toggleKeyVisibility()" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--muted);display:flex;align-items:center" id="key-vis-btn" title="Show/hide key">
+              <svg id="key-vis-icon" width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M1 8s2.5-5 7-5 7 5 7 5-2.5 5-7 5-7-5-7-5z" stroke="currentColor" stroke-width="1.4"/><circle cx="8" cy="8" r="2" stroke="currentColor" stroke-width="1.4"/></svg>
+            </button>
+          </div>
+        </div>
+        <div style="display:flex;gap:8px;margin-top:1rem;flex-wrap:wrap">
+          <button class="settings-add-btn" onclick="saveSyncCredentials()">Save &amp; Connect</button>
+          <button class="settings-add-btn" style="background:transparent;color:var(--red);border:1px solid rgba(220,38,38,0.3)" onclick="disconnectSync()">Disconnect</button>
+        </div>
+        <div id="sync-settings-status" style="margin-top:.85rem;font-family:var(--mono);font-size:.75rem;display:flex;align-items:center;gap:6px;color:var(--muted)"></div>
       </div>
     </div>
 
-    <!-- STATUSES -->
-    <div class="settings-section">
-      <div class="settings-section-title">Statuses</div>
-      <div class="settings-section-desc">Customise your task statuses. Done and Not started are fixed and cannot be removed.</div>
-      <div id="status-list"></div>
-      <div class="settings-add-row">
-        <input type="text" class="settings-add-input" id="new-status-name" placeholder="New status name...">
-        <div class="color-palette" id="new-status-colors"></div>
-        <button class="settings-add-btn" onclick="addStatus()">Add Status</button>
+    <!-- GROUP: TRASH -->
+    <div class="settings-group">
+      <div class="settings-group-title">
+        <svg width="13" height="13" viewBox="0 0 13 13" fill="none"><path d="M2 3.5h9M5 3.5V2.5h3v1M5.5 6v4M7.5 6v4M3 3.5l.7 7h5.6L10 3.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        Trash
+      </div>
+      <div class="settings-section">
+        <div class="settings-section-desc" style="margin-bottom:1rem">Deleted tasks and notes. Items are permanently removed after 30 days. Completed tasks auto-archive here after 30 days.</div>
+        <div class="trash-header">
+          <span class="trash-count" id="trash-count"></span>
+          <button class="empty-trash-btn" onclick="emptyTrash()">Empty Trash</button>
+        </div>
+        <div id="trash-list"></div>
       </div>
     </div>
 
-    <!-- LABELS -->
-    <div class="settings-section">
-      <div class="settings-section-title">Labels</div>
-      <div class="settings-section-desc">Create labels to categorise your tasks. Assign multiple labels to any task.</div>
-      <div id="label-list"></div>
-      <div class="settings-add-row">
-        <input type="text" class="settings-add-input" id="new-label-name" placeholder="New label name...">
-        <div class="color-palette" id="new-label-colors"></div>
-        <button class="settings-add-btn" onclick="addLabel()">Add Label</button>
+    <!-- GROUP: STATUSES -->
+    <div class="settings-group">
+      <div class="settings-group-title">
+        <svg width="13" height="13" viewBox="0 0 13 13" fill="none"><circle cx="6.5" cy="6.5" r="5" stroke="currentColor" stroke-width="1.3"/><path d="M4.5 6.5l1.5 1.5 2.5-2.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        Statuses
+      </div>
+      <div class="settings-section">
+        <div class="settings-section-desc">Customise your task statuses. Done and Not started are fixed.</div>
+        <div id="status-list"></div>
+        <div class="settings-add-row">
+          <input type="text" class="settings-add-input" id="new-status-name" placeholder="New status name...">
+          <div class="color-palette" id="new-status-colors"></div>
+          <button class="settings-add-btn" onclick="addStatus()">Add Status</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- GROUP: LABELS -->
+    <div class="settings-group">
+      <div class="settings-group-title">
+        <svg width="13" height="13" viewBox="0 0 13 13" fill="none"><path d="M1.5 1.5h5l5 5-5 5-5-5v-5z" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/><circle cx="4" cy="4" r=".8" fill="currentColor"/></svg>
+        Labels
+      </div>
+      <div class="settings-section">
+        <div class="settings-section-desc">Create labels to categorise your tasks.</div>
+        <div id="label-list"></div>
+        <div class="settings-add-row">
+          <input type="text" class="settings-add-input" id="new-label-name" placeholder="New label name...">
+          <div class="color-palette" id="new-label-colors"></div>
+          <button class="settings-add-btn" onclick="addLabel()">Add Label</button>
+        </div>
       </div>
     </div>
   </div>
@@ -744,6 +852,15 @@ tr.recurring-row td:nth-child(2){border-bottom:1px solid rgba(13,148,136,0.4)}
   </div>
 </div>
 
+<!-- CONFIRM DIALOG -->
+<div class="confirm-backdrop" id="confirm-backdrop" onclick="handleBackdropConfirm(event)">
+  <div class="confirm-dialog">
+    <div class="confirm-title" id="confirm-title"></div>
+    <div class="confirm-desc" id="confirm-desc"></div>
+    <div class="confirm-actions" id="confirm-actions"></div>
+  </div>
+</div>
+
 <div class="toast" id="toast"></div>
 
 <!-- PWA INSTALL BANNER -->
@@ -824,16 +941,18 @@ var DEFAULT_STATUSES = [
   {id:'not-started', name:'Not started', color:'#475569', fixed:true},
   {id:'in-progress', name:'In progress', color:'#2563eb', fixed:false},
   {id:'input-needed', name:'Input needed', color:'#7c3aed', fixed:false},
-  {id:'backlog', name:'Backlog', color:'#d97706', fixed:false},
+  {id:'backlog', name:'Backlog', color:'#d97706', fixed:true},
   {id:'done', name:'Done', color:'#16a34a', fixed:true},
-  {id:'cancelled', name:'Cancelled', color:'#dc2626', fixed:false}
+  {id:'cancelled', name:'Cancelled', color:'#dc2626', fixed:true}
 ];
 
 var statuses = [];
 var labels = [];
 var notes = [];
+var trash = []; // { id, type:'task'|'note', data:{}, trashedAt, reason:'manual'|'auto' }
 var editingNoteId = null;
 var showingNotes = false;
+var isDarkMode = false;
 var deletedIds      = []; // deleted task IDs
 var deletedNoteIds  = []; // deleted note IDs
 var deletedStatusIds = []; // deleted status IDs
@@ -945,24 +1064,28 @@ function mergeNotes(localNotes, cloudNotes) {
 }
 
 function mergeStatuses(localStatuses, cloudStatuses) {
-  // statuses are small sets — use local as source of truth
-  // but restore any cloud statuses that weren't deleted locally
   var merged = {};
+  // start with local
   localStatuses.forEach(function(s){ merged[s.id] = s; });
+  // merge cloud
   cloudStatuses.forEach(function(s){
     if (isStatusDeleted(s.id)) return; // deleted locally — skip
-    if (!merged[s.id]) merged[s.id] = s; // new on cloud — add it
-    else {
-      // keep whichever was modified more recently (use color as proxy since statuses don't have updatedAt)
-      // local wins for existing — user is actively on this device
+    if (!merged[s.id]) {
+      merged[s.id] = s; // new on cloud — add it
+    } else {
+      // last-write-wins by updatedAt
+      var localTs = merged[s.id].updatedAt || merged[s.id].createdAt || 0;
+      var cloudTs = s.updatedAt || s.createdAt || 0;
+      if (cloudTs > localTs) merged[s.id] = s;
     }
   });
+  // purge deleted
   Object.keys(merged).forEach(function(id){
     if (isStatusDeleted(id)) delete merged[id];
   });
   // always ensure fixed statuses exist
   var result = Object.keys(merged).map(function(id){ return merged[id]; });
-  ['Not started','Done'].forEach(function(name){
+  ['Not started','Done','Cancelled','Backlog'].forEach(function(name){
     if (!result.some(function(s){ return s.name === name; })) {
       var def = DEFAULT_STATUSES.find(function(s){ return s.name === name; });
       if (def) result.push(JSON.parse(JSON.stringify(def)));
@@ -973,15 +1096,233 @@ function mergeStatuses(localStatuses, cloudStatuses) {
 
 function mergeLabels(localLabels, cloudLabels) {
   var merged = {};
+  // start with local
   localLabels.forEach(function(l){ merged[l.id] = l; });
+  // merge cloud
   cloudLabels.forEach(function(l){
     if (isLabelDeleted(l.id)) return;
-    if (!merged[l.id]) merged[l.id] = l;
+    if (!merged[l.id]) {
+      merged[l.id] = l; // new on cloud — add it
+    } else {
+      // last-write-wins by updatedAt
+      var localTs = merged[l.id].updatedAt || merged[l.id].createdAt || 0;
+      var cloudTs = l.updatedAt || l.createdAt || 0;
+      if (cloudTs > localTs) merged[l.id] = l;
+    }
   });
+  // purge deleted
   Object.keys(merged).forEach(function(id){
     if (isLabelDeleted(id)) delete merged[id];
   });
   return Object.keys(merged).map(function(id){ return merged[id]; });
+}
+
+// ── DARK MODE ───────────────────────────────────────────
+function initDarkMode() {
+  var saved = localStorage.getItem('dark-mode');
+  isDarkMode = saved === 'true';
+  applyDarkMode();
+}
+
+function applyDarkMode() {
+  if (isDarkMode) {
+    document.documentElement.classList.add('dark');
+  } else {
+    document.documentElement.classList.remove('dark');
+  }
+  var icon = document.getElementById('dark-toggle-icon');
+  if (icon) icon.className = 'dark-toggle-icon' + (isDarkMode ? ' on' : '');
+}
+
+function toggleDarkMode() {
+  isDarkMode = !isDarkMode;
+  localStorage.setItem('dark-mode', isDarkMode);
+  applyDarkMode();
+}
+
+// ── TRASH ────────────────────────────────────────────────
+function mergeTrash(localTrash, cloudTrash) {
+  var merged = {};
+  // index by id
+  localTrash.forEach(function(x){ merged[x.id] = x; });
+  cloudTrash.forEach(function(x){
+    if (!merged[x.id]) merged[x.id] = x;
+    else {
+      // keep whichever was trashed more recently
+      if ((x.trashedAt||0) > (merged[x.id].trashedAt||0)) merged[x.id] = x;
+    }
+  });
+  return Object.keys(merged).map(function(id){ return merged[id]; });
+}
+
+function moveToTrash(item, type, reason) {
+  // remove from active collection
+  if (type === 'task') {
+    tasks = tasks.filter(function(x){ return x.id !== item.id; });
+  } else if (type === 'note') {
+    notes = notes.filter(function(x){ return x.id !== item.id; });
+  }
+  // add to trash — caller is responsible for calling save()
+  trash.push({
+    id: item.id,
+    type: type,
+    data: JSON.parse(JSON.stringify(item)),
+    trashedAt: Date.now(),
+    reason: reason || 'manual'
+  });
+}
+
+function restoreFromTrash(trashId) {
+  var entry = trash.find(function(x){ return x.id === trashId; });
+  if (!entry) return;
+  if (entry.type === 'task') {
+    // restore task — reset status to Not started
+    var notStarted = statuses.find(function(s){ return s.name === 'Not started'; });
+    var restored = JSON.parse(JSON.stringify(entry.data));
+    if (notStarted) restored.status = notStarted.id;
+    restored.updatedAt = Date.now();
+    tasks.push(restored);
+    showToast('Task restored');
+  } else if (entry.type === 'note') {
+    var restoredNote = JSON.parse(JSON.stringify(entry.data));
+    restoredNote.updatedAt = Date.now();
+    notes.push(restoredNote);
+    showToast('Note restored');
+  }
+  trash = trash.filter(function(x){ return x.id !== trashId; });
+  save();
+  renderSettingsPage();
+  render();
+}
+
+function permanentDeleteFromTrash(trashId) {
+  trash = trash.filter(function(x){ return x.id !== trashId; });
+  save();
+  renderSettingsPage();
+  showToast('Permanently deleted');
+}
+
+function emptyTrash() {
+  if (!trash.length) { showToast('Trash is already empty'); return; }
+  var trashCount = trash.length;
+  showConfirm(
+    'Empty Trash?',
+    'This will permanently delete all ' + trashCount + ' item(s). This cannot be undone.',
+    [
+      { label: 'Empty Trash', cls: 'danger', action: function() {
+        trash = [];
+        save();
+        renderSettingsPage();
+        showToast('Trash emptied');
+      }},
+      { label: 'Cancel', cls: 'neutral', action: null }
+    ]
+  );
+}
+
+function isCancelledStatus(id) {
+  var s = statuses.find(function(x){ return x.id === id; });
+  return s && s.name === 'Cancelled';
+}
+
+function autoArchiveCompletedTasks() {
+  var now = Date.now();
+  var thirtyDays = 30 * 24 * 60 * 60 * 1000;
+  var toArchive = tasks.filter(function(t) {
+    var changedAt = t.updatedAt || t.created || 0;
+    var isOldEnough = (now - changedAt) > thirtyDays;
+    // all done tasks (recurring + non-recurring) after 30 days
+    if (isDoneStatus(t.status) && isOldEnough) return true;
+    // only RECURRING cancelled instances after 30 days
+    if (t.recur && t.recur.groupId && isOldEnough) {
+      if (isCancelledStatus(t.status)) return true;
+    }
+    return false;
+  });
+  if (toArchive.length) {
+    toArchive.forEach(function(t) {
+      moveToTrash(t, 'task', 'auto');
+    });
+    try { localStorage.setItem('tasks-v4', JSON.stringify({ tasks:tasks, statuses:statuses, labels:labels, notes:notes, trash:trash })); } catch(e) {}
+  }
+}
+
+function purgeStaleTrashedItems() {
+  var now = Date.now();
+  var thirtyDays = 30 * 24 * 60 * 60 * 1000;
+  var before = trash.length;
+  trash = trash.filter(function(x) {
+    return (now - (x.trashedAt || 0)) < thirtyDays;
+  });
+  if (trash.length !== before) {
+    // only write to localStorage, don't trigger cloud save — loadFromCloud handles that
+    try { localStorage.setItem('tasks-v4', JSON.stringify({ tasks:tasks, statuses:statuses, labels:labels, notes:notes, trash:trash })); } catch(e) {}
+  }
+}
+
+function renderTrash() {
+  var list = document.getElementById('trash-list');
+  var count = document.getElementById('trash-count');
+  if (!list) return;
+  if (!trash.length) {
+    list.innerHTML = '<div class="trash-empty">Trash is empty</div>';
+    if (count) count.textContent = '0 items';
+    return;
+  }
+  // sort by trashedAt desc
+  var sorted = trash.slice().sort(function(a,b){ return (b.trashedAt||0) - (a.trashedAt||0); });
+  if (count) count.textContent = sorted.length + ' item' + (sorted.length !== 1 ? 's' : '');
+  var now = Date.now();
+  list.innerHTML = sorted.map(function(x) {
+    var daysLeft = Math.max(0, 30 - Math.floor((now - (x.trashedAt||0)) / 86400000));
+    var name = x.type === 'task' ? x.data.name : (x.data.title || (x.data.body||'').split('\n')[0].substring(0,40) || 'Untitled');
+    var tag = x.reason === 'auto'
+      ? '<span class="trash-item-tag auto">Auto-archived</span>'
+      : (x.type === 'note' ? '<span class="trash-item-tag note">Note</span>' : '<span class="trash-item-tag manual">Deleted</span>');
+    var escapedId = String(x.id).replace(/'/g, "\\'");
+    return '<div class="trash-item">'
+      + '<div class="trash-item-info">'
+        + '<div class="trash-item-name">' + name + '</div>'
+        + '<div class="trash-item-meta">'
+          + tag
+          + '<span>Purges in ' + daysLeft + 'd</span>'
+          + (x.type === 'task' && x.data.due ? '<span>Due: ' + x.data.due + '</span>' : '')
+        + '</div>'
+      + '</div>'
+      + '<div class="trash-actions">'
+        + '<button class="trash-restore-btn" onclick="restoreFromTrash(\'' + escapedId + '\')">Restore</button>'
+        + '<button class="trash-del-btn" onclick="permanentDeleteFromTrash(\'' + escapedId + '\')">Delete</button>'
+      + '</div>'
+    + '</div>';
+  }).join('');
+}
+
+// ── CONFIRM DIALOG ───────────────────────────────────────
+function showConfirm(title, desc, buttons) {
+  document.getElementById('confirm-title').textContent = title;
+  document.getElementById('confirm-desc').textContent = desc;
+  var actions = document.getElementById('confirm-actions');
+  actions.innerHTML = buttons.map(function(b, i) {
+    return '<button class="confirm-btn ' + b.cls + '" onclick="handleConfirmBtn(' + i + ')">' + b.label + '</button>';
+  }).join('');
+  window._confirmButtons = buttons;
+  document.getElementById('confirm-backdrop').classList.add('open');
+}
+
+function handleConfirmBtn(idx) {
+  // grab the action BEFORE closeConfirm nulls _confirmButtons
+  var btn = window._confirmButtons && window._confirmButtons[idx];
+  closeConfirm();
+  if (btn && btn.action) btn.action();
+}
+
+function handleBackdropConfirm(e) {
+  if (e.target === document.getElementById('confirm-backdrop')) closeConfirm();
+}
+
+function closeConfirm() {
+  document.getElementById('confirm-backdrop').classList.remove('open');
+  window._confirmButtons = null;
 }
 
 // Color pickers state
@@ -1010,6 +1351,7 @@ function loadFromCloud() {
       localStatuses = d.statuses || null;
       localLabels   = d.labels   || [];
       localNotes    = d.notes    || [];
+      trash         = d.trash    || [];
     }
   } catch(e) {}
 
@@ -1020,20 +1362,27 @@ function loadFromCloud() {
     statuses = localStatuses || JSON.parse(JSON.stringify(DEFAULT_STATUSES));
     labels   = localLabels;
     notes    = localNotes;
+    // trash already loaded from localStorage at line above
     init();
     return;
   }
 
   setSyncStatus('syncing', 'Syncing...');
   fetch(getApiUrl() + '/latest', { headers: {'X-Master-Key': API_KEY} })
-  .then(function(r){ return r.json(); })
+  .then(function(r){
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    return r.json();
+  })
   .then(function(data) {
     if (data.record) {
       var cloudTasks = data.record.tasks  || [];
       var cloudNotes = data.record.notes  || [];
+      // load trash from cloud (last-write-wins — just use cloud version merged with local)
+      var cloudTrash = data.record.trash  || [];
       // merge local (may have offline changes) with cloud
       tasks    = mergeTasks(localTasks, cloudTasks);
       notes    = mergeNotes(localNotes, cloudNotes);
+      trash    = mergeTrash(trash.length ? trash : [], cloudTrash);
       statuses = mergeStatuses(
         localStatuses || JSON.parse(JSON.stringify(DEFAULT_STATUSES)),
         data.record.statuses || []
@@ -1069,7 +1418,7 @@ function loadFromCloud() {
 function saveToCloud() {
   if (!BIN_ID || !API_KEY) { setSyncStatus('', 'Local mode'); return; }
   setSyncStatus('syncing', 'Saving...');
-  var payload = { tasks: tasks, statuses: statuses, labels: labels, notes: notes };
+  var payload = { tasks: tasks, statuses: statuses, labels: labels, notes: notes, trash: trash };
   fetch(getApiUrl(), {
     method: 'PUT',
     headers: {'Content-Type':'application/json','X-Master-Key':API_KEY},
@@ -1080,7 +1429,7 @@ function saveToCloud() {
 }
 
 function save() {
-  var payload = { tasks: tasks, statuses: statuses, labels: labels, notes: notes };
+  var payload = { tasks: tasks, statuses: statuses, labels: labels, notes: notes, trash: trash };
   try { localStorage.setItem('tasks-v4', JSON.stringify(payload)); } catch(e) {}
   clearTimeout(saveTimer);
   saveTimer = setTimeout(saveToCloud, 800);
@@ -1210,6 +1559,9 @@ function getRecurData() {
 
 // ── INIT ────────────────────────────────────────────────
 function init() {
+  patchFixedStatuses();
+  purgeStaleTrashedItems();
+  autoArchiveCompletedTasks();
   checkRecurringTasks();
   renderSidebarLabels();
   renderStatusFilterDropdown();
@@ -1229,8 +1581,18 @@ function daysFrom(d) {
   return Math.round((t - today) / 86400000);
 }
 
+function patchFixedStatuses() {
+  // ensure system statuses are always fixed even if loaded from old data
+  ['Cancelled','Backlog','Done','Not started'].forEach(function(name) {
+    var s = statuses.find(function(x){ return x.name === name; });
+    if (s) s.fixed = true;
+  });
+  // remove Skipped if it exists from old data
+  statuses = statuses.filter(function(s){ return s.name !== 'Skipped'; });
+}
+
 function getStatusById(id) {
-  return statuses.find(function(s){ return s.id === id; }) || statuses[0];
+  return statuses.find(function(s){ return s.id === id; }) || statuses.find(function(s){ return s.name === 'Not started'; }) || statuses[0] || {id:'',name:'Unknown',color:'#999'};
 }
 
 function getLabelById(id) {
@@ -1243,7 +1605,9 @@ function isDoneStatus(id) {
 }
 
 function getInactiveStatusIds() {
-  return statuses.filter(function(s){ return s.name==='Done'||s.name==='Cancelled'; }).map(function(s){ return s.id; });
+  return statuses.filter(function(s){
+    return s.name==='Done' || s.name==='Cancelled' || s.name==='Backlog';
+  }).map(function(s){ return s.id; });
 }
 
 function statusStyle(statusId) {
@@ -1296,7 +1660,7 @@ function pOpts(t) {
 }
 
 function sOpts(t) {
-  return statuses.map(function(s){
+  return statuses.filter(function(s){ return !s.internal; }).map(function(s){
     return '<option value="'+s.id+'"'+(t.status===s.id?' selected':'')+'>'+s.name+'</option>';
   }).join('');
 }
@@ -1331,6 +1695,12 @@ function subtaskRowsHTML(t) {
   }).join('');
 }
 
+function isFutureRecurring(t) {
+  // returns true if task is a future recurring placeholder (due date > today, not yet actionable)
+  if (!t.recur || !t.recur.groupId) return false;
+  return daysFrom(t.due) > 0 && !isDoneStatus(t.status);
+}
+
 function getFilteredList() {
   var q  = document.getElementById('search').value.toLowerCase();
   var fp = document.getElementById('filter-priority').value;
@@ -1346,6 +1716,7 @@ function getFilteredList() {
     var isInactive = inactive.indexOf(t.status) >= 0;
     if (currentView === 'overdue')  return !isInactive && d < 0;
     if (currentView === 'today')    return !isInactive && d === 0;
+    // upcoming: show non-recurring future tasks + recurring tasks due in future
     if (currentView === 'upcoming') return !isInactive && d > 0;
     if (currentView === 'done')     return isDoneStatus(t.status);
     if (currentView === 'p-high')   return t.priority === 'high' && !isDoneStatus(t.status);
@@ -1358,6 +1729,8 @@ function getFilteredList() {
     return true;
   });
 }
+
+// ── RENDER ──────────────────────────────────────────────
 
 // ── RENDER ──────────────────────────────────────────────
 function render() {
@@ -1505,19 +1878,21 @@ function renderCards(list) {
 
 function updateCounts(list) {
   var inactive = getInactiveStatusIds();
+  // exclude future recurring placeholders from all counts
+  var countable = tasks.filter(function(t){ return !isFutureRecurring(t); });
   var isActive = function(t){ return inactive.indexOf(t.status) < 0; };
-  document.getElementById('s-overdue').textContent   = tasks.filter(function(t){ return isActive(t)&&daysFrom(t.due)<0; }).length;
-  document.getElementById('s-today').textContent     = tasks.filter(function(t){ return isActive(t)&&daysFrom(t.due)===0; }).length;
-  document.getElementById('s-upcoming').textContent  = tasks.filter(function(t){ return isActive(t)&&daysFrom(t.due)>0; }).length;
-  document.getElementById('s-done').textContent      = tasks.filter(function(t){ return isDoneStatus(t.status); }).length;
-  document.getElementById('nav-all').textContent     = tasks.length;
-  document.getElementById('nav-overdue').textContent = tasks.filter(function(t){ return isActive(t)&&daysFrom(t.due)<0; }).length;
-  document.getElementById('nav-today').textContent   = tasks.filter(function(t){ return isActive(t)&&daysFrom(t.due)===0; }).length;
-  document.getElementById('nav-upcoming').textContent= tasks.filter(function(t){ return isActive(t)&&daysFrom(t.due)>0; }).length;
-  document.getElementById('nav-done').textContent    = tasks.filter(function(t){ return isDoneStatus(t.status); }).length;
-  document.getElementById('nav-high').textContent    = tasks.filter(function(t){ return t.priority==='high'&&!isDoneStatus(t.status); }).length;
-  document.getElementById('nav-medium').textContent  = tasks.filter(function(t){ return t.priority==='medium'&&!isDoneStatus(t.status); }).length;
-  document.getElementById('nav-low').textContent     = tasks.filter(function(t){ return t.priority==='low'&&!isDoneStatus(t.status); }).length;
+  document.getElementById('s-overdue').textContent   = countable.filter(function(t){ return isActive(t)&&daysFrom(t.due)<0; }).length;
+  document.getElementById('s-today').textContent     = countable.filter(function(t){ return isActive(t)&&daysFrom(t.due)===0; }).length;
+  document.getElementById('s-upcoming').textContent  = countable.filter(function(t){ return isActive(t)&&daysFrom(t.due)>0; }).length;
+  document.getElementById('s-done').textContent      = countable.filter(function(t){ return isDoneStatus(t.status); }).length;
+  document.getElementById('nav-all').textContent     = countable.length;
+  document.getElementById('nav-overdue').textContent = countable.filter(function(t){ return isActive(t)&&daysFrom(t.due)<0; }).length;
+  document.getElementById('nav-today').textContent   = countable.filter(function(t){ return isActive(t)&&daysFrom(t.due)===0; }).length;
+  document.getElementById('nav-upcoming').textContent= countable.filter(function(t){ return isActive(t)&&daysFrom(t.due)>0; }).length;
+  document.getElementById('nav-done').textContent    = countable.filter(function(t){ return isDoneStatus(t.status); }).length;
+  document.getElementById('nav-high').textContent    = countable.filter(function(t){ return t.priority==='high'&&!isDoneStatus(t.status); }).length;
+  document.getElementById('nav-medium').textContent  = countable.filter(function(t){ return t.priority==='medium'&&!isDoneStatus(t.status); }).length;
+  document.getElementById('nav-low').textContent     = countable.filter(function(t){ return t.priority==='low'&&!isDoneStatus(t.status); }).length;
   var bar = document.getElementById('bulk-bar');
   bar.style.display = selectedIds.size > 0 ? 'flex' : 'none';
   document.getElementById('bulk-count').textContent = selectedIds.size > 0 ? selectedIds.size+' selected' : '';
@@ -1543,13 +1918,14 @@ function renderSidebarLabels() {
 function renderStatusFilterDropdown() {
   var sel = document.getElementById('filter-status');
   sel.innerHTML = '<option value="">All statuses</option>'
-    + statuses.map(function(s){ return '<option value="'+s.id+'">'+s.name+'</option>'; }).join('');
+    + statuses.filter(function(s){ return !s.internal; }).map(function(s){ return '<option value="'+s.id+'">'+s.name+'</option>'; }).join('');
 }
 
 function renderBulkStatusDropdown() {
   var sel = document.getElementById('bulk-status-sel');
+  if (!sel) return;
   sel.innerHTML = '<option value="">Status...</option>'
-    + statuses.map(function(s){ return '<option value="'+s.id+'">'+s.name+'</option>'; }).join('');
+    + statuses.filter(function(s){ return !s.internal; }).map(function(s){ return '<option value="'+s.id+'">'+s.name+'</option>'; }).join('');
 }
 
 function renderLabelFilterDropdown() {
@@ -1633,13 +2009,22 @@ function saveSyncCredentials() {
 }
 
 function disconnectSync() {
-  if (!confirm('Disconnect from JSONBin? Your tasks will remain saved locally.')) return;
-  clearCredentials();
-  setSyncStatus('', 'Local mode');
-  renderSyncSettingsStatus();
-  document.getElementById('sync-bin-id').value  = '';
-  document.getElementById('sync-api-key').value = '';
-  showToast('Disconnected — running in local mode');
+  showConfirm(
+    'Disconnect from JSONBin?',
+    'Your tasks will remain saved locally. You can reconnect anytime.',
+    [
+      { label: 'Disconnect', cls: 'danger', action: function() {
+          clearCredentials();
+          setSyncStatus('', 'Local mode');
+          renderSyncSettingsStatus();
+          document.getElementById('sync-bin-id').value  = '';
+          document.getElementById('sync-api-key').value = '';
+          showToast('Disconnected — running in local mode');
+      }},
+      { label: 'Cancel', cls: 'neutral', action: null }
+    ]
+  );
+  return;
 }
 
 // ── SETTINGS ────────────────────────────────────────────
@@ -1690,6 +2075,8 @@ function renderSettingsPage() {
   renderColorPalette('new-status-colors', newStatusColor, 'onNewStatusColorSelect');
   renderColorPalette('new-label-colors',  newLabelColor,  'onNewLabelColorSelect');
   populateSyncFields();
+  renderTrash();
+  applyDarkMode();
 }
 
 function renderStatusList() {
@@ -1728,7 +2115,8 @@ function addStatus() {
   var name = document.getElementById('new-status-name').value.trim();
   if (!name) { showToast('Please enter a status name'); return; }
   var id = 'status-' + Date.now();
-  statuses.push({ id:id, name:name, color:newStatusColor, fixed:false });
+  var now = Date.now();
+  statuses.push({ id:id, name:name, color:newStatusColor, fixed:false, createdAt:now, updatedAt:now });
   document.getElementById('new-status-name').value = '';
   save();
   renderSettingsPage();
@@ -1740,44 +2128,80 @@ function addStatus() {
 function editStatus(id) {
   var s = statuses.find(function(x){ return x.id===id; }); if (!s) return;
   var count = tasks.filter(function(t){ return t.status===id; }).length;
-  var newName = prompt((count ? count+' task'+(count>1?'s are':' is')+' using this status.\nRenaming will update all of them.\n\n' : '')+'New name for "'+s.name+'":', s.name);
-  if (!newName || !newName.trim() || newName.trim() === s.name) return;
-  if (count > 0) {
-    if (!confirm(count+' task'+(count>1?'s are':' is')+' using "'+s.name+'". Renaming to "'+newName.trim()+'" will update all of them. Continue?')) return;
-  }
-  s.name = newName.trim();
-  save();
-  renderSettingsPage();
-  renderStatusFilterDropdown();
-  renderBulkStatusDropdown();
-  render();
-  showToast('Status renamed');
+  var capturedStatusId = id;
+  var desc = count > 0
+    ? count+' task'+(count>1?'s are':' is')+' using this status. They will all be updated.'
+    : 'Enter a new name for this status.';
+  // use a small inline input inside the confirm dialog
+  var inputId = 'edit-status-input-' + id;
+  showConfirm(
+    'Rename "' + s.name + '"',
+    desc,
+    [
+      { label: 'Rename', cls: 'warning', action: function() {
+          var input = document.getElementById(inputId);
+          var newName = input ? input.value.trim() : '';
+          if (!newName || newName === s.name) { showToast('No change'); return; }
+          s.name = newName;
+          s.updatedAt = Date.now();
+          save();
+          renderSettingsPage();
+          renderStatusFilterDropdown();
+          renderBulkStatusDropdown();
+          render();
+          showToast('Status renamed');
+      }},
+      { label: 'Cancel', cls: 'neutral', action: null }
+    ]
+  );
+  // inject input after dialog opens
+  setTimeout(function() {
+    var descEl = document.getElementById('confirm-desc');
+    if (descEl) {
+      descEl.innerHTML = desc + '<br><br><input id="' + inputId + '" type="text" value="' + s.name + '" style="width:100%;padding:.55rem .75rem;border:1px solid var(--border2);border-radius:8px;font-family:var(--sans);font-size:.9rem;background:var(--surface2);color:var(--text);outline:none;margin-top:4px" autofocus>';
+      var inp = document.getElementById(inputId);
+      if (inp) { inp.focus(); inp.select(); }
+    }
+  }, 50);
 }
 
 function deleteStatus(id) {
   var s = statuses.find(function(x){ return x.id===id; }); if (!s) return;
   var count = tasks.filter(function(t){ return t.status===id; }).length;
+  var capturedId = id;
+  var capturedS  = s;
   if (count > 0) {
-    var notStarted = statuses.find(function(x){ return x.name==='Not started'; });
-    var opts = statuses.filter(function(x){ return x.id!==id; }).map(function(x,i){ return (i+1)+'. '+x.name; }).join('\n');
-    var choice = prompt(count+' task'+(count>1?'s use':' uses')+' "'+s.name+'".\nMove them to which status? (enter number)\n\n'+opts);
-    if (!choice) return;
-    var idx = parseInt(choice) - 1;
-    var remaining = statuses.filter(function(x){ return x.id!==id; });
-    if (isNaN(idx) || idx < 0 || idx >= remaining.length) { showToast('Invalid choice'); return; }
-    var targetId = remaining[idx].id;
-    tasks.forEach(function(t){ if (t.status===id) t.status=targetId; });
+    var remaining = statuses.filter(function(x){ return x.id!==capturedId && !x.internal; });
+    var buttons = remaining.map(function(rs) {
+      return { label: 'Move to "' + rs.name + '"', cls: 'warning', action: function() {
+        tasks.forEach(function(t){ if (t.status===capturedId) { t.status=rs.id; t.updatedAt=Date.now(); } });
+        statuses = statuses.filter(function(x){ return x.id!==capturedId; });
+        saveDeletedStatusId(capturedId);
+        save(); renderSettingsPage(); renderStatusFilterDropdown(); renderBulkStatusDropdown(); render();
+        showToast('Status deleted');
+      }};
+    });
+    buttons.push({ label: 'Cancel', cls: 'neutral', action: null });
+    showConfirm(
+      'Delete "' + capturedS.name + '"?',
+      count + ' task' + (count>1?'s are':' is') + ' using this status. Choose where to move them:',
+      buttons
+    );
   } else {
-    if (!confirm('Delete status "'+s.name+'"?')) return;
+    showConfirm(
+      'Delete "' + capturedS.name + '"?',
+      'This status will be permanently removed.',
+      [
+        { label: 'Delete', cls: 'danger', action: function() {
+          statuses = statuses.filter(function(x){ return x.id!==capturedId; });
+          saveDeletedStatusId(capturedId);
+          save(); renderSettingsPage(); renderStatusFilterDropdown(); renderBulkStatusDropdown(); render();
+          showToast('Status deleted');
+        }},
+        { label: 'Cancel', cls: 'neutral', action: null }
+      ]
+    );
   }
-  statuses = statuses.filter(function(x){ return x.id!==id; });
-  saveDeletedStatusId(id);
-  save();
-  renderSettingsPage();
-  renderStatusFilterDropdown();
-  renderBulkStatusDropdown();
-  render();
-  showToast('Status deleted');
 }
 
 // ── LABEL CRUD ──────────────────────────────────────────
@@ -1785,7 +2209,8 @@ function addLabel() {
   var name = document.getElementById('new-label-name').value.trim();
   if (!name) { showToast('Please enter a label name'); return; }
   var id = 'label-' + Date.now();
-  labels.push({ id:id, name:name, color:newLabelColor });
+  var nowL = Date.now();
+  labels.push({ id:id, name:name, color:newLabelColor, createdAt:nowL, updatedAt:nowL });
   document.getElementById('new-label-name').value = '';
   save();
   renderSettingsPage();
@@ -1796,15 +2221,35 @@ function addLabel() {
 
 function editLabel(id) {
   var l = labels.find(function(x){ return x.id===id; }); if (!l) return;
-  var newName = prompt('New name for label "'+l.name+'":', l.name);
-  if (!newName || !newName.trim() || newName.trim()===l.name) return;
-  l.name = newName.trim();
-  save();
-  renderSettingsPage();
-  renderSidebarLabels();
-  renderLabelFilterDropdown();
-  render();
-  showToast('Label renamed');
+  var inputId = 'edit-label-input-' + id;
+  showConfirm(
+    'Rename "' + l.name + '"',
+    'Enter a new name for this label.',
+    [
+      { label: 'Rename', cls: 'warning', action: function() {
+          var input = document.getElementById(inputId);
+          var newName = input ? input.value.trim() : '';
+          if (!newName || newName === l.name) { showToast('No change'); return; }
+          l.name = newName;
+          l.updatedAt = Date.now();
+          save();
+          renderSettingsPage();
+          renderSidebarLabels();
+          renderLabelFilterDropdown();
+          render();
+          showToast('Label renamed');
+      }},
+      { label: 'Cancel', cls: 'neutral', action: null }
+    ]
+  );
+  setTimeout(function() {
+    var descEl = document.getElementById('confirm-desc');
+    if (descEl) {
+      descEl.innerHTML = 'Enter a new name for this label.<br><br><input id="' + inputId + '" type="text" value="' + l.name + '" style="width:100%;padding:.55rem .75rem;border:1px solid var(--border2);border-radius:8px;font-family:var(--sans);font-size:.9rem;background:var(--surface2);color:var(--text);outline:none;margin-top:4px" autofocus>';
+      var inp = document.getElementById(inputId);
+      if (inp) { inp.focus(); inp.select(); }
+    }
+  }, 50);
 }
 
 function deleteLabel(id) {
@@ -1813,16 +2258,25 @@ function deleteLabel(id) {
   var msg = count > 0
     ? 'Delete "'+l.name+'"? It will be removed from '+count+' task'+(count>1?'s':'')+'. This cannot be undone.'
     : 'Delete label "'+l.name+'"?';
-  if (!confirm(msg)) return;
-  labels = labels.filter(function(x){ return x.id!==id; });
-  saveDeletedLabelId(id);
-  tasks.forEach(function(t){ if (t.labels) t.labels = t.labels.filter(function(lid){ return lid!==id; }); });
-  save();
-  renderSettingsPage();
-  renderSidebarLabels();
-  renderLabelFilterDropdown();
-  render();
-  showToast('Label deleted');
+  var capturedLabelId = id;
+  showConfirm(
+    'Delete label "' + l.name + '"?',
+    msg,
+    [
+      { label: 'Delete', cls: 'danger', action: function() {
+          labels = labels.filter(function(x){ return x.id!==capturedLabelId; });
+          saveDeletedLabelId(capturedLabelId);
+          tasks.forEach(function(t){ if (t.labels) t.labels = t.labels.filter(function(lid){ return lid!==capturedLabelId; }); });
+          save();
+          renderSettingsPage();
+          renderSidebarLabels();
+          renderLabelFilterDropdown();
+          render();
+          showToast('Label deleted');
+      }},
+      { label: 'Cancel', cls: 'neutral', action: null }
+    ]
+  );
 }
 
 // ── RECURRING MODAL UI ──────────────────────────────────
@@ -1915,7 +2369,7 @@ function openModal(id) {
   document.getElementById('modal-title').textContent = id ? 'Edit Task' : 'New Task';
   // populate status dropdown
   var fStat = document.getElementById('f-status');
-  fStat.innerHTML = statuses.map(function(s){ return '<option value="'+s.id+'">'+s.name+'</option>'; }).join('');
+  fStat.innerHTML = statuses.filter(function(s){ return !s.internal; }).map(function(s){ return '<option value="'+s.id+'">'+s.name+'</option>'; }).join('');
   populateDaySelects();
   if (id) {
     var t = tasks.find(function(x){ return x.id===id; }); if (!t) return;
@@ -2014,6 +2468,18 @@ function saveTask() {
     }
     tasks.push(newTask);
     showToast('Task added');
+  }
+  // informational toast for recurring tasks set to Cancelled or Backlog
+  if (editingId) {
+    var savedTask = tasks.find(function(x){ return x.id===editingId; });
+    if (savedTask && savedTask.recur && savedTask.recur.groupId) {
+      var savedStatus = statuses.find(function(s){ return s.id === savedTask.status; });
+      if (savedStatus && (savedStatus.name === 'Cancelled' || savedStatus.name === 'Backlog')) {
+        save(); checkRecurringTasks(); render(); renderSidebarLabels(); closeModal();
+        showToast('Only this instance is ' + savedStatus.name.toLowerCase() + ' — future instances will continue as scheduled');
+        return;
+      }
+    }
   }
   save(); checkRecurringTasks(); render(); renderSidebarLabels(); closeModal();
 }
@@ -2152,13 +2618,20 @@ function cancelNote() {
 
 function deleteNote(e, id) {
   e.stopPropagation();
-  if (!confirm('Delete this note?')) return;
-  saveDeletedNoteId(id);
-  notes = notes.filter(function(x){ return x.id !== id; });
-  if (editingNoteId === id) cancelNote();
-  save();
-  renderNotes();
-  showToast('Note deleted');
+  var n = notes.find(function(x){ return x.id===id; }); if (!n) return;
+  var capturedNoteId = id;
+  var capturedNote   = n;
+  showConfirm('Delete note?', 'Move this note to trash?', [
+    { label: 'Move to Trash', cls: 'danger', action: function() {
+      saveDeletedNoteId(capturedNoteId);
+      moveToTrash(capturedNote, 'note', 'manual');
+      if (editingNoteId === capturedNoteId) cancelNote();
+      save(); renderNotes();
+      renderSettingsPage();
+      showToast('Note moved to trash');
+    }},
+    { label: 'Cancel', cls: 'neutral', action: null }
+  ]);
 }
 
 // ── ACTIONS ─────────────────────────────────────────────
@@ -2207,7 +2680,24 @@ function clearSelection() { selectedIds.clear(); render(); }
 function markComplete(id) {
   var t = tasks.find(function(x){ return x.id===id; }); if (!t) return;
   var pending = (t.subtasks||[]).filter(function(s){ return !s.done; }).length;
-  if (pending > 0 && !confirm(pending+' subtask'+(pending>1?'s are':' is')+' still incomplete. Mark task as complete anyway?')) return;
+  if (pending > 0) {
+    var capturedMarkId = id;
+    showConfirm(
+      'Incomplete subtasks',
+      pending + ' subtask' + (pending>1?'s are':' is') + ' still incomplete. Mark task as complete anyway?',
+      [
+        { label: 'Mark Complete', cls: 'warning', action: function() {
+            var doneStatus2 = statuses.find(function(s){ return s.name==='Done'; });
+            var t2 = tasks.find(function(x){ return x.id===capturedMarkId; }); if (!t2) return;
+            t2.status = doneStatus2 ? doneStatus2.id : t2.status;
+            t2.updatedAt = Date.now();
+            save(); render(); showToast('Task marked complete');
+        }},
+        { label: 'Cancel', cls: 'neutral', action: null }
+      ]
+    );
+    return;
+  }
   var doneStatus = statuses.find(function(s){ return s.name==='Done'; });
   t.status = doneStatus ? doneStatus.id : t.status;
   t.updatedAt = Date.now();
@@ -2231,7 +2721,20 @@ function updatePriority(id, val) {
 function updateStatus(id, val) {
   var t = tasks.find(function(x){ return x.id===id; }); if (!t) return;
   t.status = val; t.updatedAt = Date.now();
-  save(); render(); showToast('Status updated');
+  save(); render();
+  // show informational toast for recurring tasks when cancelling or backlogging
+  if (t.recur && t.recur.groupId) {
+    var newStatus = statuses.find(function(s){ return s.id === val; });
+    if (newStatus && newStatus.name === 'Cancelled') {
+      showToast('Only this instance is cancelled — future instances will continue as scheduled');
+      return;
+    }
+    if (newStatus && newStatus.name === 'Backlog') {
+      showToast('Only this instance is backlogged — future instances will continue as scheduled');
+      return;
+    }
+  }
+  showToast('Status updated');
 }
 
 function toggleSubtask(taskId, idx, cb) {
@@ -2265,36 +2768,51 @@ function deleteTask(id) {
   var t = tasks.find(function(x){ return x.id===id; });
   if (!t) return;
   var isRecurring = t.recur && t.recur.groupId;
-  var hasSubs = t.subtasks && t.subtasks.length > 0;
-  var msg;
   if (isRecurring) {
-    var groupCount = tasks.filter(function(x){ return x.recur && x.recur.groupId===t.recur.groupId; }).length;
-    msg = 'This is a recurring task. Delete:\n\n1. Only this instance\n2. This and all '+groupCount+' instances in the series\n\nEnter 1 or 2:';
-    var choice = prompt(msg);
-    if (!choice) return;
-    if (choice.trim() === '2') {
-      var gid = t.recur.groupId;
-      var toDelete = tasks.filter(function(x){ return x.recur && x.recur.groupId===gid; });
-      toDelete.forEach(function(x){ saveDeletedId(x.id); });
-      tasks = tasks.filter(function(x){ return !(x.recur && x.recur.groupId===gid); });
-      showToast('Recurring series deleted');
-    } else if (choice.trim() === '1') {
-      saveDeletedId(id);
-      tasks = tasks.filter(function(x){ return x.id!==id; });
-      showToast('Instance deleted');
-    } else {
-      showToast('Invalid choice');
-      return;
-    }
+    var capturedId  = id;
+    var capturedT   = t;
+    var capturedGid = t.recur.groupId;
+    showConfirm(
+      'Delete recurring task?',
+      '"' + t.name + '"',
+      [
+        { label: 'This instance only', cls: 'warning', action: function() {
+          saveDeletedId(capturedId);
+          moveToTrash(capturedT, 'task', 'manual');
+          selectedIds.delete(capturedId); expandedIds.delete(capturedId);
+          save(); render(); renderSidebarLabels(); renderSettingsPage();
+          showToast('Instance moved to trash');
+        }},
+{ label: 'This instance + all future occurrences', cls: 'danger', action: function() {
+          var series = tasks.filter(function(x){ return x.recur && x.recur.groupId===capturedGid; });
+          series.forEach(function(x){
+            saveDeletedId(x.id);
+            moveToTrash(x, 'task', 'manual');
+          });
+          save(); render(); renderSidebarLabels(); renderSettingsPage();
+          showToast('Series moved to trash');
+        }},
+        { label: 'Cancel', cls: 'neutral', action: null }
+      ]
+    );
   } else {
-    msg = hasSubs ? 'This task has '+t.subtasks.length+' subtask'+(t.subtasks.length>1?'s':'')+'. Delete everything?' : 'Delete this task?';
-    if (!confirm(msg)) return;
-    saveDeletedId(id);
-    tasks = tasks.filter(function(x){ return x.id!==id; });
-    showToast('Task deleted');
+    var hasSubs = t.subtasks && t.subtasks.length > 0;
+    var desc = hasSubs
+      ? '"' + t.name + '" has ' + t.subtasks.length + ' subtask' + (t.subtasks.length>1?'s':'') + '. Move to trash?'
+      : 'Move "' + t.name + '" to trash?';
+    var capturedId2 = id;
+    var capturedT2  = t;
+    showConfirm('Delete task?', desc, [
+      { label: 'Move to Trash', cls: 'danger', action: function() {
+        saveDeletedId(capturedId2);
+        moveToTrash(capturedT2, 'task', 'manual');
+        selectedIds.delete(capturedId2); expandedIds.delete(capturedId2);
+        save(); render(); renderSidebarLabels(); renderSettingsPage();
+        showToast('Moved to trash');
+      }},
+      { label: 'Cancel', cls: 'neutral', action: null }
+    ]);
   }
-  selectedIds.delete(id); expandedIds.delete(id);
-  save(); render(); renderSidebarLabels();
 }
 
 function bulkMarkComplete() {
@@ -2326,11 +2844,25 @@ function bulkSetStatus(val) {
 }
 
 function bulkDelete() {
-  if (!confirm('Delete '+selectedIds.size+' selected task(s)?')) return;
   var count = selectedIds.size;
-  selectedIds.forEach(function(id){ saveDeletedId(id); });
-  tasks = tasks.filter(function(x){ return !selectedIds.has(x.id); });
-  save(); showToast(count+' tasks deleted'); selectedIds.clear(); render();
+  if (!count) return;
+  // snapshot ids NOW before the async confirm — selectedIds may change
+  var snapshotIds = Array.from(selectedIds);
+  showConfirm(
+    'Delete ' + count + ' task' + (count>1?'s':'') + '?',
+    'These will be moved to trash and can be restored within 30 days.',
+    [
+      { label: 'Move to Trash', cls: 'danger', action: function() {
+        snapshotIds.forEach(function(id){
+          var t = tasks.find(function(x){ return x.id===id; });
+          if (t) { saveDeletedId(id); moveToTrash(t, 'task', 'manual'); }
+        });
+        save(); showToast(count+' tasks moved to trash');
+        selectedIds.clear(); render(); renderSettingsPage();
+      }},
+      { label: 'Cancel', cls: 'neutral', action: null }
+    ]
+  );
 }
 
 // ── TOPBAR STATE ─────────────────────────────────────────
@@ -2396,7 +2928,7 @@ function showToast(msg) {
 
 // ── KEYBOARD ────────────────────────────────────────────
 document.addEventListener('keydown', function(e) {
-  if (e.key==='Escape') { closeModal(); closeSidebar(); }
+  if (e.key==='Escape') { closeModal(); closeSidebar(); closeConfirm(); }
   if ((e.metaKey||e.ctrlKey) && e.key==='k') { openModal(); e.preventDefault(); }
 });
 
@@ -2422,6 +2954,7 @@ document.getElementById('install-dismiss').addEventListener('click', function() 
   document.getElementById('install-banner').style.display='none';
 });
 
+initDarkMode();
 loadCredentials();
 loadDeletedIds();
 loadFromCloud();
