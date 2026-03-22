@@ -16,7 +16,7 @@
 var manifestData = {
   "name": "Task Dashboard",
   "short_name": "Tasks",
-  "start_url": "./",
+  "start_url": "/Tasks/",
   "display": "standalone",
   "background_color": "#f4f4f7",
   "theme_color": "#4f46e5",
@@ -463,7 +463,7 @@ tr.recurring-row td:nth-child(2){border-bottom:1px solid rgba(13,148,136,0.4)}
 <body>
 
 <!-- AUTH SCREEN -->
-<div id="auth-screen" style="display:none">
+<div id="auth-screen" style="display:flex">
   <div class="auth-card">
     <div class="auth-logo">
       <span class="auth-logo-dot"></span>
@@ -472,17 +472,19 @@ tr.recurring-row td:nth-child(2){border-bottom:1px solid rgba(13,148,136,0.4)}
     <div class="auth-title" id="auth-title">Welcome back</div>
     <div class="auth-sub" id="auth-sub">Sign in to sync your tasks across devices</div>
     <div class="auth-error" id="auth-error"></div>
+    <form onsubmit="authSubmit();return false;" style="margin:0">
     <input type="email" class="auth-input" id="auth-email" placeholder="Email address" autocomplete="email">
     <input type="password" class="auth-input" id="auth-password" placeholder="Password" autocomplete="current-password">
     <input type="password" class="auth-input" id="auth-password2" placeholder="Confirm password" style="display:none" autocomplete="new-password">
-    <button class="auth-btn" id="auth-submit-btn" onclick="authSubmit()">Sign In</button>
+    <button type="submit" class="auth-btn" id="auth-submit-btn">Sign In</button>
+    </form>
     <div class="auth-switch" id="auth-switch">
       No account? <span onclick="toggleAuthMode()">Create one</span>
     </div>
   </div>
 </div>
 
-<div class="loading" id="loading">
+<div class="loading" id="loading" style="display:none">
   <div class="loading-spinner"></div>
   <div class="loading-text">Syncing tasks...</div>
 </div>
@@ -1604,11 +1606,11 @@ function loadFromCloud() {
     return r.json();
   })
   .then(function(data) {
-    if (data && typeof data === 'object' && !data.error) {
+    if (data && typeof data === 'object' && !data.error && (data.tasks || data.notes || data.statuses)) {
+      // cloud has data — this user has existing data, merge with local
       var cloudTasks = data.tasks  || [];
       var cloudNotes = data.notes  || [];
       var cloudTrash = data.trash  || [];
-      // merge local (may have offline changes) with cloud
       tasks    = mergeTasks(localTasks, cloudTasks);
       notes    = mergeNotes(localNotes, cloudNotes);
       trash    = mergeTrash(trash.length ? trash : [], cloudTrash);
@@ -1620,11 +1622,14 @@ function loadFromCloud() {
       // push merged result back to cloud so both sides are in sync
       saveToCloud();
     } else {
-      // database exists but empty — use local data and push to cloud
-      tasks    = localTasks;
-      notes    = localNotes;
-      statuses = localStatuses || JSON.parse(JSON.stringify(DEFAULT_STATUSES));
-      labels   = localLabels;
+      // database empty — new user, clean slate
+      // do NOT load from localStorage — that belongs to whoever was logged in before
+      tasks    = [];
+      notes    = [];
+      statuses = JSON.parse(JSON.stringify(DEFAULT_STATUSES));
+      labels   = [];
+      trash    = [];
+      // save empty state to cloud so this user's path is initialised
       saveToCloud();
     }
     document.getElementById('loading').style.display = 'none';
@@ -3098,14 +3103,10 @@ function showToast(msg) {
 document.addEventListener('keydown', function(e) {
   if (e.key==='Escape') { closeModal(); closeSidebar(); closeConfirm(); }
   if ((e.metaKey||e.ctrlKey) && e.key==='k') { openModal(); e.preventDefault(); }
-  // Enter key submits auth form when auth screen is visible
-  if (e.key==='Enter') {
-    var authScreen = document.getElementById('auth-screen');
-    if (authScreen && authScreen.style.display !== 'none') { authSubmit(); }
-  }
+  // Enter key handled by auth form's onsubmit
 });
 
-document.getElementById('page-date').textContent = today.toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+var pdEl = document.getElementById('page-date'); if (pdEl) pdEl.textContent = today.toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
 
 // ── PWA ─────────────────────────────────────────────────
 if ('serviceWorker' in navigator) {
@@ -3130,13 +3131,14 @@ document.getElementById('install-dismiss').addEventListener('click', function() 
 initDarkMode();
 loadCredentials();
 loadDeletedIds();
-// if not signed in show auth screen, otherwise load from cloud
-if (!currentUser) {
-  document.getElementById('loading').style.display = 'none';
-  showAuthScreen();
-} else {
+// auth-screen is visible by default
+// if already signed in, hide auth and load data
+if (currentUser) {
+  document.getElementById('auth-screen').style.display = 'none';
+  document.getElementById('loading').style.display = 'flex';
   loadFromCloud();
 }
+// else: auth-screen is already showing, nothing to do
 </script>
 </div><!-- end app-wrapper -->
 </body>
