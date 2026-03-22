@@ -10,7 +10,26 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="Tasks">
-<link rel="manifest" href="data:application/json,{%22name%22:%22Task Dashboard%22,%22short_name%22:%22Tasks%22,%22start_url%22:%22.%22,%22display%22:%22standalone%22,%22background_color%22:%22%23f4f4f7%22,%22theme_color%22:%22%234f46e5%22,%22icons%22:[{%22src%22:%22data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'%3E%3Crect width='192' height='192' rx='40' fill='%234f46e5'/%3E%3Cpath d='M48 96l32 32L144 64' stroke='white' stroke-width='16' stroke-linecap='round' fill='none'/%3E%3C/svg%3E%22,%22sizes%22:%22192x192%22,%22type%22:%22image/svg+xml%22}]}">
+<link rel="manifest" id="pwa-manifest">
+<script>
+// Create manifest as a Blob so Chrome accepts it properly
+var manifestData = {
+  "name": "Task Dashboard",
+  "short_name": "Tasks",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#f4f4f7",
+  "theme_color": "#4f46e5",
+  "icons": [{
+    "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'%3E%3Crect width='192' height='192' rx='40' fill='%234f46e5'/%3E%3Cpath d='M48 96l32 32L144 64' stroke='white' stroke-width='16' stroke-linecap='round' fill='none'/%3E%3C/svg%3E",
+    "sizes": "192x192",
+    "type": "image/svg+xml"
+  }]
+};
+var manifestBlob = new Blob([JSON.stringify(manifestData)], {type: 'application/json'});
+var manifestURL = URL.createObjectURL(manifestBlob);
+document.getElementById('pwa-manifest').setAttribute('href', manifestURL);
+</script>
 <link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'%3E%3Crect width='192' height='192' rx='40' fill='%234f46e5'/%3E%3Cpath d='M48 96l32 32L144 64' stroke='white' stroke-width='16' stroke-linecap='round' fill='none'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=Syne:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -60,25 +79,27 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:1
 .settings-group-title::after{content:'';flex:1;height:1px;background:var(--border)}
 
 /* TRASH */
-.trash-empty{text-align:center;padding:3rem 2rem;color:var(--muted);font-size:.88rem}
-.trash-item{display:flex;align-items:flex-start;gap:10px;padding:.85rem 1rem;background:var(--surface2);border-radius:10px;border:1px solid var(--border);margin-bottom:8px;transition:border-color .15s}
+.trash-empty{text-align:center;padding:2rem;color:var(--muted);font-size:.88rem}
+.trash-item{display:flex;align-items:center;gap:10px;padding:.5rem .75rem;background:var(--surface2);border-radius:8px;border:1px solid var(--border);margin-bottom:4px;transition:border-color .15s}
 .trash-item:hover{border-color:var(--border2)}
-.trash-item-info{flex:1;min-width:0}
-.trash-item-name{font-weight:600;font-size:.88rem;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.trash-item-meta{font-family:var(--mono);font-size:.65rem;color:var(--muted);margin-top:3px;display:flex;gap:8px;flex-wrap:wrap}
-.trash-item-tag{font-family:var(--mono);font-size:.62rem;padding:1px 7px;border-radius:20px;font-weight:500}
+.trash-item-info{flex:1;min-width:0;display:flex;align-items:center;gap:8px}
+.trash-item-name{font-weight:500;font-size:.85rem;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1}
+.trash-item-meta{font-family:var(--mono);font-size:.62rem;color:var(--muted);white-space:nowrap;flex-shrink:0}
+.trash-item-tag{font-family:var(--mono);font-size:.6rem;padding:1px 6px;border-radius:20px;font-weight:500;flex-shrink:0}
 .trash-item-tag.auto{background:var(--amber-dim);color:var(--amber)}
 .trash-item-tag.manual{background:var(--faint);color:var(--muted)}
 .trash-item-tag.note{background:var(--blue-dim);color:var(--blue)}
-.trash-actions{display:flex;gap:6px;align-items:center;flex-shrink:0}
-.trash-restore-btn{background:var(--green-dim);color:var(--green);border:none;border-radius:8px;font-family:var(--sans);font-size:.75rem;font-weight:600;padding:.35rem .75rem;cursor:pointer;transition:opacity .15s;white-space:nowrap}
+.trash-actions{display:flex;gap:4px;align-items:center;flex-shrink:0}
+.trash-restore-btn{background:var(--green-dim);color:var(--green);border:none;border-radius:6px;font-family:var(--sans);font-size:.72rem;font-weight:600;padding:.25rem .6rem;cursor:pointer;transition:opacity .15s;white-space:nowrap}
 .trash-restore-btn:hover{opacity:.8}
-.trash-del-btn{background:var(--red-dim);color:var(--red);border:none;border-radius:8px;font-family:var(--sans);font-size:.75rem;font-weight:600;padding:.35rem .75rem;cursor:pointer;transition:opacity .15s;white-space:nowrap}
+.trash-del-btn{background:var(--red-dim);color:var(--red);border:none;border-radius:6px;font-family:var(--sans);font-size:.72rem;font-weight:600;padding:.25rem .6rem;cursor:pointer;transition:opacity .15s;white-space:nowrap}
 .trash-del-btn:hover{opacity:.8}
-.trash-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;flex-wrap:wrap;gap:8px}
-.trash-count{font-family:var(--mono);font-size:.75rem;color:var(--muted)}
-.empty-trash-btn{background:transparent;color:var(--red);border:1px solid rgba(220,38,38,0.3);border-radius:8px;font-family:var(--sans);font-size:.78rem;font-weight:600;padding:.4rem .85rem;cursor:pointer;transition:all .15s}
+.trash-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:.75rem;flex-wrap:wrap;gap:8px}
+.trash-count{font-family:var(--mono);font-size:.72rem;color:var(--muted)}
+.empty-trash-btn{background:transparent;color:var(--red);border:1px solid rgba(220,38,38,0.3);border-radius:8px;font-family:var(--sans);font-size:.75rem;font-weight:600;padding:.35rem .8rem;cursor:pointer;transition:all .15s}
 .empty-trash-btn:hover{background:var(--red-dim)}
+.trash-show-all{width:100%;margin-top:8px;padding:.55rem;background:var(--surface2);border:1px solid var(--border);border-radius:8px;font-family:var(--sans);font-size:.8rem;font-weight:600;color:var(--muted);cursor:pointer;transition:all .15s;text-align:center}
+.trash-show-all:hover{background:var(--faint);color:var(--text)}
 
 /* CONFIRM DIALOG */
 .confirm-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:250;display:none;align-items:center;justify-content:center;padding:1rem}
@@ -629,15 +650,15 @@ tr.recurring-row td:nth-child(2){border-bottom:1px solid rgba(13,148,136,0.4)}
         Cloud Sync
       </div>
       <div class="settings-section">
-        <div class="settings-section-desc" style="margin-bottom:1rem">Connect to JSONBin to sync across devices. Get credentials at <a href="https://jsonbin.io" target="_blank" style="color:var(--accent)">jsonbin.io</a></div>
+        <div class="settings-section-desc" style="margin-bottom:1rem">Connect to Firebase Realtime Database to sync across devices. <a href="https://console.firebase.google.com" target="_blank" style="color:var(--accent)">Firebase Console</a></div>
         <div class="form-row">
-          <label>Bin ID</label>
-          <input type="text" class="settings-add-input" id="sync-bin-id" placeholder="e.g. 69bbf570b7ec241ddc8211bc" style="width:100%;font-family:var(--mono);font-size:.82rem">
+          <label>Database URL</label>
+          <input type="text" class="settings-add-input" id="sync-bin-id" placeholder="https://your-project-default-rtdb.firebaseio.com/data" style="width:100%;font-family:var(--mono);font-size:.82rem">
         </div>
         <div class="form-row" style="margin-top:.75rem">
-          <label>X-Master-Key</label>
+          <label>Database Secret</label>
           <div style="position:relative">
-            <input type="password" class="settings-add-input" id="sync-api-key" placeholder="$2a$10$..." style="width:100%;font-family:var(--mono);font-size:.82rem;padding-right:2.5rem">
+            <input type="password" class="settings-add-input" id="sync-api-key" placeholder="Your Firebase database secret" style="width:100%;font-family:var(--mono);font-size:.82rem;padding-right:2.5rem">
             <button onclick="toggleKeyVisibility()" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--muted);display:flex;align-items:center" id="key-vis-btn" title="Show/hide key">
               <svg id="key-vis-icon" width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M1 8s2.5-5 7-5 7 5 7 5-2.5 5-7 5-7-5-7-5z" stroke="currentColor" stroke-width="1.4"/><circle cx="8" cy="8" r="2" stroke="currentColor" stroke-width="1.4"/></svg>
             </button>
@@ -878,34 +899,34 @@ tr.recurring-row td:nth-child(2){border-bottom:1px solid rgba(13,148,136,0.4)}
 
 <script>
 // ── CONFIG — loaded from localStorage ───────────────────
-var BIN_ID  = '';
-var API_KEY = '';
-
-function getApiUrl() {
-  return 'https://api.jsonbin.io/v3/b/' + BIN_ID;
-}
+var FIREBASE_URL    = ''; // e.g. https://your-project-default-rtdb.firebaseio.com/data
+var FIREBASE_SECRET = ''; // Database secret from Firebase console
 
 function loadCredentials() {
   try {
     var creds = localStorage.getItem('sync-credentials');
     if (creds) {
       var c = JSON.parse(creds);
-      BIN_ID  = c.binId  || '';
-      API_KEY = c.apiKey || '';
+      FIREBASE_URL    = c.firebaseUrl    || '';
+      FIREBASE_SECRET = c.firebaseSecret || '';
     }
   } catch(e) {}
 }
 
-function saveCredentials(binId, apiKey) {
-  BIN_ID  = binId;
-  API_KEY = apiKey;
-  try { localStorage.setItem('sync-credentials', JSON.stringify({binId:binId, apiKey:apiKey})); } catch(e) {}
+function saveCredentials(firebaseUrl, firebaseSecret) {
+  FIREBASE_URL    = firebaseUrl;
+  FIREBASE_SECRET = firebaseSecret;
+  try { localStorage.setItem('sync-credentials', JSON.stringify({firebaseUrl:firebaseUrl, firebaseSecret:firebaseSecret})); } catch(e) { showToast('Storage full — credentials not saved'); }
 }
 
 function clearCredentials() {
-  BIN_ID  = '';
-  API_KEY = '';
+  FIREBASE_URL    = '';
+  FIREBASE_SECRET = '';
   try { localStorage.removeItem('sync-credentials'); } catch(e) {}
+}
+
+function getFirebaseUrl() {
+  return FIREBASE_URL + '.json?auth=' + FIREBASE_SECRET;
 }
 // ────────────────────────────────────────────────────────
 
@@ -924,6 +945,26 @@ var COLORS = [
 ];
 
 var today = new Date(); today.setHours(0,0,0,0);
+
+function escapeHTML(str) {
+  if (str === null || str === undefined) return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+var _idCounter = 0;
+function generateId() {
+  _idCounter++;
+  return Date.now() * 10000 + _idCounter + Math.floor(Math.random() * 100);
+}
+
+function getToday() {
+  var t = new Date(); t.setHours(0,0,0,0); return t;
+}
 var tasks = [];
 var currentView = 'all';
 var editingId = null;
@@ -950,6 +991,8 @@ var statuses = [];
 var labels = [];
 var notes = [];
 var trash = []; // { id, type:'task'|'note', data:{}, trashedAt, reason:'manual'|'auto' }
+var trashShowAll = false; // whether to show all trash items or just first 15
+var _confirmButtons = null; // active confirm dialog buttons
 var editingNoteId = null;
 var showingNotes = false;
 var isDarkMode = false;
@@ -1173,10 +1216,10 @@ function moveToTrash(item, type, reason) {
 }
 
 function restoreFromTrash(trashId) {
-  var entry = trash.find(function(x){ return x.id === trashId; });
+  // coerce to match both string and number IDs
+  var entry = trash.find(function(x){ return String(x.id) === String(trashId); });
   if (!entry) return;
   if (entry.type === 'task') {
-    // restore task — reset status to Not started
     var notStarted = statuses.find(function(s){ return s.name === 'Not started'; });
     var restored = JSON.parse(JSON.stringify(entry.data));
     if (notStarted) restored.status = notStarted.id;
@@ -1189,14 +1232,14 @@ function restoreFromTrash(trashId) {
     notes.push(restoredNote);
     showToast('Note restored');
   }
-  trash = trash.filter(function(x){ return x.id !== trashId; });
+  trash = trash.filter(function(x){ return String(x.id) !== String(trashId); });
   save();
   renderSettingsPage();
   render();
 }
 
 function permanentDeleteFromTrash(trashId) {
-  trash = trash.filter(function(x){ return x.id !== trashId; });
+  trash = trash.filter(function(x){ return String(x.id) !== String(trashId); });
   save();
   renderSettingsPage();
   showToast('Permanently deleted');
@@ -1211,6 +1254,7 @@ function emptyTrash() {
     [
       { label: 'Empty Trash', cls: 'danger', action: function() {
         trash = [];
+        trashShowAll = false;
         save();
         renderSettingsPage();
         showToast('Trash emptied');
@@ -1267,27 +1311,27 @@ function renderTrash() {
   if (!trash.length) {
     list.innerHTML = '<div class="trash-empty">Trash is empty</div>';
     if (count) count.textContent = '0 items';
+    trashShowAll = false;
     return;
   }
-  // sort by trashedAt desc
   var sorted = trash.slice().sort(function(a,b){ return (b.trashedAt||0) - (a.trashedAt||0); });
-  if (count) count.textContent = sorted.length + ' item' + (sorted.length !== 1 ? 's' : '');
+  var total = sorted.length;
+  var LIMIT = 15;
+  var visible = (trashShowAll || total <= LIMIT) ? sorted : sorted.slice(0, LIMIT);
+  if (count) count.textContent = total + ' item' + (total !== 1 ? 's' : '');
   var now = Date.now();
-  list.innerHTML = sorted.map(function(x) {
+  var html = visible.map(function(x) {
     var daysLeft = Math.max(0, 30 - Math.floor((now - (x.trashedAt||0)) / 86400000));
     var name = x.type === 'task' ? x.data.name : (x.data.title || (x.data.body||'').split('\n')[0].substring(0,40) || 'Untitled');
     var tag = x.reason === 'auto'
-      ? '<span class="trash-item-tag auto">Auto-archived</span>'
-      : (x.type === 'note' ? '<span class="trash-item-tag note">Note</span>' : '<span class="trash-item-tag manual">Deleted</span>');
+      ? '<span class="trash-item-tag auto">Auto</span>'
+      : (x.type === 'note' ? '<span class="trash-item-tag note">Note</span>' : '<span class="trash-item-tag manual">Del</span>');
     var escapedId = String(x.id).replace(/'/g, "\\'");
     return '<div class="trash-item">'
       + '<div class="trash-item-info">'
-        + '<div class="trash-item-name">' + name + '</div>'
-        + '<div class="trash-item-meta">'
-          + tag
-          + '<span>Purges in ' + daysLeft + 'd</span>'
-          + (x.type === 'task' && x.data.due ? '<span>Due: ' + x.data.due + '</span>' : '')
-        + '</div>'
+        + tag
+        + '<span class="trash-item-name" title="' + escapeHTML(name) + '">' + escapeHTML(name) + '</span>'
+        + '<span class="trash-item-meta">' + daysLeft + 'd left</span>'
       + '</div>'
       + '<div class="trash-actions">'
         + '<button class="trash-restore-btn" onclick="restoreFromTrash(\'' + escapedId + '\')">Restore</button>'
@@ -1295,6 +1339,12 @@ function renderTrash() {
       + '</div>'
     + '</div>';
   }).join('');
+  if (!trashShowAll && total > LIMIT) {
+    html += '<button class="trash-show-all" onclick="trashShowAll=true;renderTrash()">Show all ' + total + ' items</button>';
+  } else if (trashShowAll && total > LIMIT) {
+    html += '<button class="trash-show-all" onclick="trashShowAll=false;renderTrash()">Show less</button>';
+  }
+  list.innerHTML = html;
 }
 
 // ── CONFIRM DIALOG ───────────────────────────────────────
@@ -1305,13 +1355,13 @@ function showConfirm(title, desc, buttons) {
   actions.innerHTML = buttons.map(function(b, i) {
     return '<button class="confirm-btn ' + b.cls + '" onclick="handleConfirmBtn(' + i + ')">' + b.label + '</button>';
   }).join('');
-  window._confirmButtons = buttons;
+  _confirmButtons = buttons;
   document.getElementById('confirm-backdrop').classList.add('open');
 }
 
 function handleConfirmBtn(idx) {
   // grab the action BEFORE closeConfirm nulls _confirmButtons
-  var btn = window._confirmButtons && window._confirmButtons[idx];
+  var btn = _confirmButtons && _confirmButtons[idx];
   closeConfirm();
   if (btn && btn.action) btn.action();
 }
@@ -1322,7 +1372,7 @@ function handleBackdropConfirm(e) {
 
 function closeConfirm() {
   document.getElementById('confirm-backdrop').classList.remove('open');
-  window._confirmButtons = null;
+  _confirmButtons = null;
 }
 
 // Color pickers state
@@ -1333,8 +1383,8 @@ var newLabelColor  = COLORS[0].hex;
 function setSyncStatus(state, text) {
   var dot = document.getElementById('sync-dot');
   var txt = document.getElementById('sync-text');
-  dot.className = 'sync-dot ' + state;
-  txt.textContent = text;
+  if (dot) dot.className = 'sync-dot ' + state;
+  if (txt) txt.textContent = text;
 }
 
 function loadFromCloud() {
@@ -1355,43 +1405,42 @@ function loadFromCloud() {
     }
   } catch(e) {}
 
-  if (!BIN_ID || !API_KEY) {
+  if (!FIREBASE_URL || !FIREBASE_SECRET) {
     document.getElementById('loading').style.display = 'none';
     setSyncStatus('', 'Local mode');
     tasks    = localTasks;
     statuses = localStatuses || JSON.parse(JSON.stringify(DEFAULT_STATUSES));
     labels   = localLabels;
     notes    = localNotes;
-    // trash already loaded from localStorage at line above
+    // trash already loaded from localStorage above
     init();
     return;
   }
 
   setSyncStatus('syncing', 'Syncing...');
-  fetch(getApiUrl() + '/latest', { headers: {'X-Master-Key': API_KEY} })
+  fetch(getFirebaseUrl())
   .then(function(r){
     if (!r.ok) throw new Error('HTTP ' + r.status);
     return r.json();
   })
   .then(function(data) {
-    if (data.record) {
-      var cloudTasks = data.record.tasks  || [];
-      var cloudNotes = data.record.notes  || [];
-      // load trash from cloud (last-write-wins — just use cloud version merged with local)
-      var cloudTrash = data.record.trash  || [];
+    if (data && typeof data === 'object' && !data.error) {
+      var cloudTasks = data.tasks  || [];
+      var cloudNotes = data.notes  || [];
+      var cloudTrash = data.trash  || [];
       // merge local (may have offline changes) with cloud
       tasks    = mergeTasks(localTasks, cloudTasks);
       notes    = mergeNotes(localNotes, cloudNotes);
       trash    = mergeTrash(trash.length ? trash : [], cloudTrash);
       statuses = mergeStatuses(
         localStatuses || JSON.parse(JSON.stringify(DEFAULT_STATUSES)),
-        data.record.statuses || []
+        data.statuses || []
       );
-      labels   = mergeLabels(localLabels, data.record.labels || []);
+      labels   = mergeLabels(localLabels, data.labels || []);
       // push merged result back to cloud so both sides are in sync
       saveToCloud();
     } else {
-      // bin exists but empty — use local data
+      // database exists but empty — use local data and push to cloud
       tasks    = localTasks;
       notes    = localNotes;
       statuses = localStatuses || JSON.parse(JSON.stringify(DEFAULT_STATUSES));
@@ -1416,21 +1465,24 @@ function loadFromCloud() {
 }
 
 function saveToCloud() {
-  if (!BIN_ID || !API_KEY) { setSyncStatus('', 'Local mode'); return; }
+  if (!FIREBASE_URL || !FIREBASE_SECRET) { setSyncStatus('', 'Local mode'); return; }
   setSyncStatus('syncing', 'Saving...');
   var payload = { tasks: tasks, statuses: statuses, labels: labels, notes: notes, trash: trash };
-  fetch(getApiUrl(), {
+  fetch(getFirebaseUrl(), {
     method: 'PUT',
-    headers: {'Content-Type':'application/json','X-Master-Key':API_KEY},
+    headers: {'Content-Type':'application/json'},
     body: JSON.stringify(payload)
   })
-  .then(function(){ setSyncStatus('synced', 'Saved'); })
+  .then(function(r){
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    setSyncStatus('synced', 'Saved');
+  })
   .catch(function(){ setSyncStatus('error', 'Save failed'); showToast('Could not save to cloud'); });
 }
 
 function save() {
   var payload = { tasks: tasks, statuses: statuses, labels: labels, notes: notes, trash: trash };
-  try { localStorage.setItem('tasks-v4', JSON.stringify(payload)); } catch(e) {}
+  try { localStorage.setItem('tasks-v4', JSON.stringify(payload)); } catch(e) { showToast('Storage full — data not saved locally'); }
   clearTimeout(saveTimer);
   saveTimer = setTimeout(saveToCloud, 800);
 }
@@ -1486,7 +1538,7 @@ function nextDueDate(r, fromDate) {
 function padDate(d) { return d.toISOString().slice(0,10); }
 
 function checkRecurringTasks() {
-  var todayStr = padDate(today);
+  var todayStr = padDate(getToday());
   var added = false;
   var snapshot = tasks.slice(); // snapshot to avoid mutating while iterating
   var seenGroups = {};
@@ -1509,7 +1561,7 @@ function checkRecurringTasks() {
       var exists = tasks.some(function(x){ return x.recur && x.recur.groupId===groupId && x.due===next; });
       if (!exists) {
         tasks.push({
-          id: Date.now() + Math.floor(Math.random()*9999),
+          id: generateId(),
           created: Date.now(), updatedAt: Date.now(),
           name: t.name, desc: t.desc, due: next,
           priority: t.priority, assignee: t.assignee,
@@ -1530,7 +1582,7 @@ function checkRecurringTasks() {
       var latestAll = tasks.filter(function(x){ return x.recur&&x.recur.groupId===groupId; })
         .reduce(function(max,x){ return x.due>max?x.due:max; },'0000-00-00');
       tasks.push({
-        id: Date.now() + Math.floor(Math.random()*9999),
+        id: generateId(),
         created: Date.now(), updatedAt: Date.now(),
         name: t.name, desc: t.desc,
         due: nextDueDate(t.recur, latestAll),
@@ -1578,7 +1630,7 @@ function init() {
 // ── HELPERS ─────────────────────────────────────────────
 function daysFrom(d) {
   var t = new Date(d); t.setHours(0,0,0,0);
-  return Math.round((t - today) / 86400000);
+  return Math.round((t - getToday()) / 86400000);
 }
 
 function patchFixedStatuses() {
@@ -1731,8 +1783,6 @@ function getFilteredList() {
 }
 
 // ── RENDER ──────────────────────────────────────────────
-
-// ── RENDER ──────────────────────────────────────────────
 function render() {
   var sort = document.getElementById('sort-by').value;
   var pOrd = {high:0,medium:1,low:2};
@@ -1783,11 +1833,11 @@ function renderTable(list) {
           +expandBtn
           +'<div style="min-width:0;flex:1">'
             +'<div style="display:flex;align-items:center;gap:5px;flex-wrap:wrap">'
-              +'<span class="task-name" style="'+doneStyle+'">'+t.name+'</span>'
+              +'<span class="task-name" style="'+doneStyle+'">'+escapeHTML(t.name)+'</span>'
               +labelsHTML(t)
             +'</div>'
-            +(t.desc?'<div class="task-desc">'+t.desc+'</div>':'')
-            +(t.assignee?'<div class="task-assignee">'+t.assignee+'</div>':'')
+            +(t.desc?'<div class="task-desc">'+escapeHTML(t.desc)+'</div>':'')
+            +(t.assignee?'<div class="task-assignee">'+escapeHTML(t.assignee)+'</div>':'')
             +recurBadge
             +(hasSubs?progressHTML(t):'')
           +'</div>'
@@ -1847,7 +1897,7 @@ function renderCards(list) {
       +'<div class="task-card-header">'
         +'<span class="priority-dot-'+t.priority+'" style="margin-top:4px;flex-shrink:0"></span>'
         +(subs.length?'<button class="expand-btn'+(isExpanded?' open':'')+'" onclick="toggleExpand('+t.id+')" style="margin-top:2px"><svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M4 2l4 4-4 4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></button>':'')
-        +'<div class="task-card-name'+(doneStatus?' task-card-done':'')+'">'+t.name+'</div>'
+        +'<div class="task-card-name'+(doneStatus?' task-card-done':'')+'">'+escapeHTML(t.name)+'</div>'
       +'</div>'
       +(t.desc?'<div class="task-card-desc">'+t.desc+'</div>':'')
       +(isRecurring?'<div class="recur-badge" style="margin-bottom:6px"><svg width="10" height="10" viewBox="0 0 14 14" fill="none"><path d="M2 7A5 5 0 1 0 7 2H5m0 0L3 4m2-2L3 0" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>'+recurLabel(t.recur)+'</div>':'')
@@ -1863,7 +1913,7 @@ function renderCards(list) {
       +'</div>'
       +subsHTML
       +'<div class="task-card-footer">'
-        +'<div class="task-card-assignee">'+(t.assignee||'')+'</div>'
+        +'<div class="task-card-assignee">'+escapeHTML(t.assignee||'')+'</div>'
         +'<div class="task-card-actions">'
           +(!doneStatus
             ?'<button class="action-btn complete" title="Mark complete" onclick="markComplete('+t.id+')"><svg width="15" height="15" viewBox="0 0 13 13" fill="none"><path d="M2 7l3.5 3.5L11 3" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></button>'
@@ -1909,7 +1959,7 @@ function renderSidebarLabels() {
     var count = tasks.filter(function(t){ return (t.labels||[]).includes(l.id); }).length;
     return '<div class="nav-item" onclick="setView(\'label-'+l.id+'\',this)">'
       +'<span class="nav-color-dot" style="background:'+l.color+'"></span>'
-      +l.name
+      +escapeHTML(l.name)
       +'<span class="nav-count">'+count+'</span>'
     +'</div>';
   }).join('');
@@ -1938,18 +1988,18 @@ function renderLabelFilterDropdown() {
 function renderSyncSettingsStatus() {
   var el = document.getElementById('sync-settings-status');
   if (!el) return;
-  if (BIN_ID && API_KEY) {
-    el.innerHTML = '<span style="width:8px;height:8px;border-radius:50%;background:var(--green);display:inline-block;flex-shrink:0"></span> Connected — syncing to JSONBin';
+  if (FIREBASE_URL && FIREBASE_SECRET) {
+    el.innerHTML = '<span style="width:8px;height:8px;border-radius:50%;background:var(--green);display:inline-block;flex-shrink:0"></span> Connected — syncing to Firebase';
   } else {
     el.innerHTML = '<span style="width:8px;height:8px;border-radius:50%;background:var(--muted);display:inline-block;flex-shrink:0"></span> Not connected — running in local mode';
   }
 }
 
 function populateSyncFields() {
-  var binEl = document.getElementById('sync-bin-id');
+  var urlEl = document.getElementById('sync-bin-id');
   var keyEl = document.getElementById('sync-api-key');
-  if (binEl) binEl.value = BIN_ID || '';
-  if (keyEl) keyEl.value = API_KEY || '';
+  if (urlEl) urlEl.value = FIREBASE_URL    || '';
+  if (keyEl) keyEl.value = FIREBASE_SECRET || '';
   renderSyncSettingsStatus();
 }
 
@@ -1967,50 +2017,50 @@ function toggleKeyVisibility() {
 }
 
 function saveSyncCredentials() {
-  var binId  = (document.getElementById('sync-bin-id').value  || '').trim();
-  var apiKey = (document.getElementById('sync-api-key').value || '').trim();
-  if (!binId || !apiKey) { showToast('Please enter both Bin ID and API Key'); return; }
-  saveCredentials(binId, apiKey);
+  var fbUrl    = (document.getElementById('sync-bin-id').value  || '').trim();
+  var fbSecret = (document.getElementById('sync-api-key').value || '').trim();
+  if (!fbUrl || !fbSecret) { showToast('Please enter both Database URL and Secret'); return; }
+  saveCredentials(fbUrl, fbSecret);
   renderSyncSettingsStatus();
   setSyncStatus('syncing', 'Connecting...');
-  showToast('Connecting to JSONBin...');
+  showToast('Connecting to Firebase...');
   // test connection by fetching
-  fetch(getApiUrl() + '/latest', { headers: {'X-Master-Key': API_KEY} })
-  .then(function(r){ return r.json(); })
+  fetch(fbUrl + '.json?auth=' + fbSecret)
+  .then(function(r){
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    return r.json();
+  })
   .then(function(data) {
-    if (data.record) {
-      var cloudTasks = data.record.tasks  || [];
-      var cloudNotes = data.record.notes  || [];
-      tasks    = mergeTasks(tasks, cloudTasks);
-      notes    = mergeNotes(notes, cloudNotes);
+    if (data && typeof data === 'object' && !data.error && (data.tasks || data.notes)) {
+      // cloud has data — merge with local
+      tasks    = mergeTasks(tasks, data.tasks  || []);
+      notes    = mergeNotes(notes, data.notes  || []);
       statuses = mergeStatuses(
         statuses.length ? statuses : JSON.parse(JSON.stringify(DEFAULT_STATUSES)),
-        data.record.statuses || []
+        data.statuses || []
       );
-      labels   = mergeLabels(labels, data.record.labels || []);
+      labels   = mergeLabels(labels, data.labels || []);
+      trash    = mergeTrash(trash, data.trash   || []);
       setSyncStatus('synced', 'Synced');
       showToast('Connected and synced ✓');
       saveToCloud();
       init();
-    } else if (data.message && data.message.toLowerCase().includes('not found')) {
-      // bin exists but is empty — push our local data to it
+    } else {
+      // database empty or new — push local data up
       saveToCloud();
       setSyncStatus('synced', 'Connected');
       showToast('Connected — local data uploaded ✓');
-    } else {
-      setSyncStatus('error', 'Connection failed');
-      showToast('Connection failed — check your credentials');
     }
   })
   .catch(function() {
     setSyncStatus('error', 'Connection failed');
-    showToast('Connection failed — check your credentials');
+    showToast('Connection failed — check your URL and secret');
   });
 }
 
 function disconnectSync() {
   showConfirm(
-    'Disconnect from JSONBin?',
+    'Disconnect from Firebase?',
     'Your tasks will remain saved locally. You can reconnect anytime.',
     [
       { label: 'Disconnect', cls: 'danger', action: function() {
@@ -2024,7 +2074,6 @@ function disconnectSync() {
       { label: 'Cancel', cls: 'neutral', action: null }
     ]
   );
-  return;
 }
 
 // ── SETTINGS ────────────────────────────────────────────
@@ -2086,7 +2135,7 @@ function renderStatusList() {
     var lockIcon = s.fixed ? '<span title="Fixed" style="font-size:.75rem;opacity:.45">🔒</span>' : '';
     return '<div class="settings-item">'
       +'<span class="settings-item-color" style="background:'+s.color+'"></span>'
-      +'<span class="settings-item-name">'+s.name+'</span>'
+      +'<span class="settings-item-name">'+escapeHTML(s.name)+'</span>'
       +lockIcon
       +(count ? '<span class="settings-item-badge">'+count+' task'+(count>1?'s':'')+'</span>' : '')
       +(!s.fixed ? '<button class="settings-edit-btn" onclick="editStatus(\''+s.id+'\')">Edit</button>' : '')
@@ -2102,7 +2151,7 @@ function renderLabelList() {
     var count = tasks.filter(function(t){ return (t.labels||[]).includes(l.id); }).length;
     return '<div class="settings-item">'
       +'<span class="settings-item-color" style="background:'+l.color+'"></span>'
-      +'<span class="settings-item-name">'+l.name+'</span>'
+      +'<span class="settings-item-name">'+escapeHTML(l.name)+'</span>'
       +(count ? '<span class="settings-item-badge">'+count+' task'+(count>1?'s':'')+'</span>' : '')
       +'<button class="settings-edit-btn" onclick="editLabel(\''+l.id+'\')">Edit</button>'
       +'<button class="settings-del-btn" onclick="deleteLabel(\''+l.id+'\')">Delete</button>'
@@ -2158,7 +2207,7 @@ function editStatus(id) {
   setTimeout(function() {
     var descEl = document.getElementById('confirm-desc');
     if (descEl) {
-      descEl.innerHTML = desc + '<br><br><input id="' + inputId + '" type="text" value="' + s.name + '" style="width:100%;padding:.55rem .75rem;border:1px solid var(--border2);border-radius:8px;font-family:var(--sans);font-size:.9rem;background:var(--surface2);color:var(--text);outline:none;margin-top:4px" autofocus>';
+      descEl.innerHTML = desc + '<br><br><input id="' + inputId + '" type="text" value="' + escapeHTML(s.name) + '" style="width:100%;padding:.55rem .75rem;border:1px solid var(--border2);border-radius:8px;font-family:var(--sans);font-size:.9rem;background:var(--surface2);color:var(--text);outline:none;margin-top:4px" autofocus>';
       var inp = document.getElementById(inputId);
       if (inp) { inp.focus(); inp.select(); }
     }
@@ -2245,7 +2294,7 @@ function editLabel(id) {
   setTimeout(function() {
     var descEl = document.getElementById('confirm-desc');
     if (descEl) {
-      descEl.innerHTML = 'Enter a new name for this label.<br><br><input id="' + inputId + '" type="text" value="' + l.name + '" style="width:100%;padding:.55rem .75rem;border:1px solid var(--border2);border-radius:8px;font-family:var(--sans);font-size:.9rem;background:var(--surface2);color:var(--text);outline:none;margin-top:4px" autofocus>';
+      descEl.innerHTML = 'Enter a new name for this label.<br><br><input id="' + inputId + '" type="text" value="' + escapeHTML(l.name) + '" style="width:100%;padding:.55rem .75rem;border:1px solid var(--border2);border-radius:8px;font-family:var(--sans);font-size:.9rem;background:var(--surface2);color:var(--text);outline:none;margin-top:4px" autofocus>';
       var inp = document.getElementById(inputId);
       if (inp) { inp.focus(); inp.select(); }
     }
@@ -2459,7 +2508,6 @@ function saveTask() {
         }
       }
     }
-    showToast('Task updated');
   } else {
     var newTask = Object.assign({id:Date.now(), created:Date.now()}, data);
     if (recurData) {
@@ -2467,7 +2515,9 @@ function saveTask() {
       newTask.recur = Object.assign({groupId:newGid}, recurData);
     }
     tasks.push(newTask);
+    save(); checkRecurringTasks(); render(); renderSidebarLabels(); closeModal();
     showToast('Task added');
+    return;
   }
   // informational toast for recurring tasks set to Cancelled or Backlog
   if (editingId) {
@@ -2482,6 +2532,7 @@ function saveTask() {
     }
   }
   save(); checkRecurringTasks(); render(); renderSidebarLabels(); closeModal();
+  showToast('Task updated');
 }
 
 // ── NOTES ───────────────────────────────────────────────
@@ -2559,8 +2610,8 @@ function renderNotes() {
       +'<button class="note-card-del" onclick="deleteNote(event,\''+n.id+'\')" title="Delete note">'
         +'<svg width="13" height="13" viewBox="0 0 13 13" fill="none"><path d="M2 3.5h9M5 3.5V2.5h3v1M5.5 6v4M7.5 6v4M3 3.5l.7 7h5.6L10 3.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>'
       +'</button>'
-      +'<div class="note-card-title">'+displayTitle+'</div>'
-      +(n.body ? '<div class="note-card-body">'+n.body+'</div>' : '')
+      +'<div class="note-card-title">'+escapeHTML(displayTitle)+'</div>'
+      +(n.body ? '<div class="note-card-body">'+escapeHTML(n.body)+'</div>' : '')
       +'<div class="note-card-ts">'
         +'<span>Created '+formatTs(n.createdAt)+'</span>'
         +(n.updatedAt && n.updatedAt !== n.createdAt ? '<span>Edited '+formatTs(n.updatedAt)+'</span>' : '')
