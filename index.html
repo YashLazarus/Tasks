@@ -406,7 +406,7 @@ tr.recurring-row td:nth-child(2){border-bottom:1px solid rgba(13,148,136,0.4)}
 
 /* AUTH */
 .auth-screen{position:fixed;inset:0;background:var(--bg);z-index:400;display:none;align-items:center;justify-content:center;padding:1.5rem}
-.auth-card{background:var(--surface);border:1px solid var(--border2);border-radius:20px;padding:2.5rem 2rem;width:380px;max-width:100%;animation:slideUp .25s ease}
+.auth-card{background:var(--surface);border:1px solid var(--border2);border-radius:20px;padding:2.5rem 2rem;width:380px;max-width:100%;animation:slideUp .25s ease;box-shadow:0 8px 40px rgba(0,0,0,0.25)}
 .auth-logo{display:flex;align-items:center;gap:10px;margin-bottom:2rem;justify-content:center}
 .auth-logo-dot{width:10px;height:10px;background:var(--accent);border-radius:50%}
 .auth-logo-text{font-size:1.3rem;font-weight:700;letter-spacing:-.03em}
@@ -461,11 +461,27 @@ tr.recurring-row td:nth-child(2){border-bottom:1px solid rgba(13,148,136,0.4)}
   .toolbar{gap:6px}
 }
 </style>
+<script>
+// Run synchronously before body renders to set correct initial state
+(function(){
+  var user = null;
+  try { user = localStorage.getItem('auth-user'); } catch(e){}
+  if (!user) {
+    // Not logged in — show auth screen immediately on DOMContentLoaded
+    document.addEventListener('DOMContentLoaded', function() {
+      var a = document.getElementById('auth-screen');
+      if (a) a.style.display = 'flex';
+      var l = document.getElementById('loading');
+      if (l) l.style.display = 'none';
+    });
+  }
+})();
+</script>
 </head>
 <body>
 
 <!-- AUTH SCREEN -->
-<div id="auth-screen" style="display:flex">
+<div id="auth-screen" style="display:none">
   <div class="auth-card">
     <div class="auth-logo">
       <span class="auth-logo-dot"></span>
