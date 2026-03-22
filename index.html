@@ -405,7 +405,8 @@ tr.recurring-row td:nth-child(2){border-bottom:1px solid rgba(13,148,136,0.4)}
 .toast.show{transform:translateX(-50%) translateY(0);opacity:1}
 
 /* AUTH */
-.auth-screen{position:fixed;inset:0;background:var(--bg);z-index:400;display:none;align-items:center;justify-content:center;padding:1.5rem}
+.auth-screen{position:fixed;inset:0;width:100vw;height:100vh;z-index:400;display:none;align-items:center;justify-content:center;padding:1.5rem;box-sizing:border-box;background:#f4f4f7}
+html.dark .auth-screen{background:#0f0f14}
 .auth-card{background:var(--surface);border:1px solid var(--border2);border-radius:20px;padding:2.5rem 2rem;width:380px;max-width:100%;animation:slideUp .25s ease;box-shadow:0 8px 40px rgba(0,0,0,0.25)}
 .auth-logo{display:flex;align-items:center;gap:10px;margin-bottom:2rem;justify-content:center}
 .auth-logo-dot{width:10px;height:10px;background:var(--accent);border-radius:50%}
@@ -432,7 +433,8 @@ tr.recurring-row td:nth-child(2){border-bottom:1px solid rgba(13,148,136,0.4)}
 .account-signout:hover{background:var(--red-dim)}
 
 /* LOADING */
-.loading{position:fixed;inset:0;background:var(--bg);z-index:300;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px}
+.loading{position:fixed;inset:0;background:#f4f4f7;z-index:300;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px}
+html.dark .loading{background:#0f0f14}
 .loading-spinner{width:36px;height:36px;border:3px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite}
 @keyframes spin{to{transform:rotate(360deg)}}
 .loading-text{font-family:var(--mono);font-size:.8rem;color:var(--muted)}
@@ -461,22 +463,7 @@ tr.recurring-row td:nth-child(2){border-bottom:1px solid rgba(13,148,136,0.4)}
   .toolbar{gap:6px}
 }
 </style>
-<script>
-// Run synchronously before body renders to set correct initial state
-(function(){
-  var user = null;
-  try { user = localStorage.getItem('auth-user'); } catch(e){}
-  if (!user) {
-    // Not logged in — show auth screen immediately on DOMContentLoaded
-    document.addEventListener('DOMContentLoaded', function() {
-      var a = document.getElementById('auth-screen');
-      if (a) a.style.display = 'flex';
-      var l = document.getElementById('loading');
-      if (l) l.style.display = 'none';
-    });
-  }
-})();
-</script>
+
 </head>
 <body>
 
@@ -985,14 +972,15 @@ function showAuthScreen() {
   document.getElementById('loading').style.display = 'none';
   var aw = document.getElementById('app-wrapper');
   if (aw) aw.style.display = 'none';
+  document.getElementById('auth-error').className = 'auth-error';
   setTimeout(function(){ document.getElementById('auth-email').focus(); }, 100);
 }
 
 function hideAuthScreen() {
   document.getElementById('auth-screen').style.display = 'none';
+  // show loading spinner while data fetches
   document.getElementById('loading').style.display = 'flex';
-  var aw = document.getElementById('app-wrapper');
-  if (aw) aw.style.display = 'block';
+  // app-wrapper revealed by init() after data loads
 }
 
 function toggleAuthMode() {
@@ -1610,7 +1598,6 @@ function loadFromCloud() {
   } catch(e) {}
 
   if (!currentUser) {
-    document.getElementById('loading').style.display = 'none';
     showAuthScreen();
     return;
   }
@@ -1652,6 +1639,8 @@ function loadFromCloud() {
       saveToCloud();
     }
     document.getElementById('loading').style.display = 'none';
+    var aw = document.getElementById('app-wrapper');
+    if (aw) aw.style.display = 'contents';
     setSyncStatus('synced', 'Synced');
     init();
   })
@@ -1662,6 +1651,8 @@ function loadFromCloud() {
     labels   = localLabels;
     notes    = localNotes;
     document.getElementById('loading').style.display = 'none';
+    var aw2 = document.getElementById('app-wrapper');
+    if (aw2) aw2.style.display = 'contents';
     setSyncStatus('error', 'Offline mode');
     init();
     showToast('Could not sync — working offline');
@@ -3157,14 +3148,16 @@ document.getElementById('install-dismiss').addEventListener('click', function() 
 initDarkMode();
 loadCredentials();
 loadDeletedIds();
-// auth-screen is visible by default
-// if already signed in, hide auth and load data
 if (currentUser) {
+  // already logged in — show loading then fetch data
   document.getElementById('auth-screen').style.display = 'none';
   document.getElementById('loading').style.display = 'flex';
   loadFromCloud();
+} else {
+  // not logged in — show auth screen
+  document.getElementById('auth-screen').style.display = 'flex';
+  document.getElementById('loading').style.display = 'none';
 }
-// else: auth-screen is already showing, nothing to do
 </script>
 </div><!-- end app-wrapper -->
 </body>
