@@ -252,6 +252,9 @@ tbody tr.sel-row td{background:rgba(79,70,229,0.05)}
 /* MOBILE CARDS */
 .card-list{display:none;flex-direction:column;gap:10px}
 .task-card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:1rem;position:relative}
+.task-card.p-card-high{border-left:4px solid var(--red)}
+.task-card.p-card-medium{border-left:4px solid var(--amber)}
+.task-card.p-card-low{border-left:4px solid var(--blue)}
 .task-card-header{display:flex;align-items:flex-start;gap:8px;margin-bottom:6px}
 .task-card-name{font-weight:600;font-size:.95rem;flex:1;line-height:1.4;word-break:break-word}
 .task-card-done{text-decoration:line-through;color:var(--muted)}
@@ -1551,6 +1554,54 @@ var newStatusColor = COLORS[1].hex;
 var newLabelColor  = COLORS[0].hex;
 
 // ── SYNC ────────────────────────────────────────────────
+function focusSync() {
+  // Called when app comes to foreground — fetch fresh from Firebase only
+  // Skip localStorage entirely to avoid stale data
+  if (!currentUser) return;
+  var url = getFirebaseUrl();
+  if (!url) return;
+  ensureValidToken().then(function(valid) {
+    if (!valid) return;
+    setSyncStatus('syncing', 'Syncing...');
+    fetch(getFirebaseUrl())
+    .then(function(r){
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      return r.json();
+    })
+    .then(function(data) {
+      if (data && typeof data === 'object' && !data.error) {
+        // Update all data directly from Firebase — no localStorage merge
+        tasks    = data.tasks    || tasks;
+        notes    = data.notes    || notes;
+        statuses = data.statuses || statuses;
+        labels   = data.labels   || labels;
+        trash    = data.trash    || trash;
+        // Update localStorage to match
+        try { localStorage.setItem('tasks-v4', JSON.stringify({tasks:tasks,statuses:statuses,labels:labels,notes:notes,trash:trash})); } catch(e) {}
+        setSyncStatus('synced', 'Synced');
+        // Re-render everything
+        renderSidebarLabels();
+        renderStatusFilterDropdown();
+        renderBulkStatusDropdown();
+        renderLabelFilterDropdown();
+        render();
+        renderNotes();
+        renderSettingsPage();
+        updateNotesCount();
+      } else {
+        setSyncStatus('synced', 'Synced');
+      }
+    })
+    .catch(function(){ setSyncStatus('error', 'Sync failed'); });
+  });
+}
+
+// Sync when app comes to foreground
+document.addEventListener('visibilitychange', function() {
+  if (document.visibilityState === 'visible' && currentUser) {
+    focusSync();
+  }
+});
 function setSyncStatus(state, text) {
   var dot = document.getElementById('sync-dot');
   var txt = document.getElementById('sync-text');
@@ -2091,7 +2142,7 @@ function renderCards(list) {
         }).join('')
       +'</div>';
     }
-    return '<div class="task-card'+(isRecurring?' recurring-card':'')+'">'
+    return '<div class="task-card p-card-'+t.priority+(isRecurring?' recurring-card':'')+'">'
       +'<div class="task-card-header">'
         +'<span class="priority-dot-'+t.priority+'" style="margin-top:4px;flex-shrink:0"></span>'
         +(subs.length?'<button class="expand-btn'+(isExpanded?' open':'')+'" onclick="toggleExpand('+t.id+')" style="margin-top:2px"><svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M4 2l4 4-4 4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></button>':'')
