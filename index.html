@@ -1265,6 +1265,27 @@ function isStatusDeleted(id) { return statusDelTracker.has(id); }
 function isLabelDeleted(id)  { return labelDelTracker.has(id); }
 
 // ── MERGE ────────────────────────────────────────────────
+function mergeDeletedIdsFromCloud(data) {
+  // For each deleted ID tracker, merge cloud IDs into local
+  var pairs = [
+    { cloud: data.deletedIds       || [], tracker: taskDelTracker,   arr: deletedIds },
+    { cloud: data.deletedNoteIds   || [], tracker: noteDelTracker,   arr: deletedNoteIds },
+    { cloud: data.deletedStatusIds || [], tracker: statusDelTracker, arr: deletedStatusIds },
+    { cloud: data.deletedLabelIds  || [], tracker: labelDelTracker,  arr: deletedLabelIds }
+  ];
+  pairs.forEach(function(p) {
+    p.cloud.forEach(function(item) {
+      // only add if not already tracked
+      var exists = p.arr.some(function(x){ return String(x.id) === String(item.id); });
+      if (!exists) p.arr.push(item);
+    });
+  });
+  // Save merged deleted IDs back to localStorage
+  try { localStorage.setItem('deleted-ids-v4',        JSON.stringify(deletedIds)); } catch(e) {}
+  try { localStorage.setItem('deleted-note-ids-v4',   JSON.stringify(deletedNoteIds)); } catch(e) {}
+  try { localStorage.setItem('deleted-status-ids-v4', JSON.stringify(deletedStatusIds)); } catch(e) {}
+  try { localStorage.setItem('deleted-label-ids-v4',  JSON.stringify(deletedLabelIds)); } catch(e) {}
+}
 function mergeTasks(localTasks, cloudTasks) {
   var merged = {};
 
@@ -1612,9 +1633,8 @@ function focusSync() {
     })
     .then(function(data) {
       if (data && typeof data === 'object' && !data.error) {
-        // Reload deleted IDs from localStorage before merging
-        // so cross-device deletions are respected
-        loadDeletedIds();
+        // Merge deleted IDs from cloud first — critical for cross-device deletions
+        mergeDeletedIdsFromCloud(data);
         // Use merge functions so deletion tracking is respected
         tasks    = mergeTasks(tasks,    data.tasks    || []);
         notes    = mergeNotes(notes,    data.notes    || []);
@@ -1691,6 +1711,8 @@ function loadFromCloud() {
   .then(function(data) {
     if (data && typeof data === 'object' && !data.error && (data.tasks || data.notes || data.statuses)) {
       // cloud has data — this user has existing data, merge with local
+      // merge deleted IDs from cloud first so cross-device deletions are respected
+      mergeDeletedIdsFromCloud(data);
       var cloudTasks = data.tasks  || [];
       var cloudNotes = data.notes  || [];
       var cloudTrash = data.trash  || [];
@@ -1742,7 +1764,7 @@ function saveToCloud() {
   var url = getFirebaseUrl();
   if (!url) return;
   setSyncStatus('syncing', 'Saving...');
-  var payload = { tasks: tasks, statuses: statuses, labels: labels, notes: notes, trash: trash };
+  var payload = { tasks: tasks, statuses: statuses, labels: labels, notes: notes, trash: trash, deletedIds: deletedIds, deletedNoteIds: deletedNoteIds, deletedStatusIds: deletedStatusIds, deletedLabelIds: deletedLabelIds };
   var doSave = function(token) {
     return fetch(FIREBASE_DB_URL + '/users/' + currentUser.uid + '/data.json?auth=' + token, {
       method: 'PUT',
@@ -1769,7 +1791,7 @@ function saveToCloud() {
 }
 
 function save() {
-  var payload = { tasks: tasks, statuses: statuses, labels: labels, notes: notes, trash: trash };
+  var payload = { tasks: tasks, statuses: statuses, labels: labels, notes: notes, trash: trash, deletedIds: deletedIds, deletedNoteIds: deletedNoteIds, deletedStatusIds: deletedStatusIds, deletedLabelIds: deletedLabelIds };
   try { localStorage.setItem('tasks-v4', JSON.stringify(payload)); } catch(e) { showToast('Storage full — data not saved locally'); }
   clearTimeout(saveTimer);
   saveTimer = setTimeout(saveToCloud, 800);
