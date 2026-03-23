@@ -1195,7 +1195,7 @@ function makeDeleteTracker(storageKey, arr) {
       try { localStorage.setItem(storageKey, JSON.stringify(arr)); } catch(e) {}
     },
     has: function(id) {
-      return arr.some(function(x){ return x.id === id; });
+      return arr.some(function(x){ return String(x.id) === String(id); });
     }
   };
 }
@@ -1570,16 +1570,19 @@ function focusSync() {
     })
     .then(function(data) {
       if (data && typeof data === 'object' && !data.error) {
-        // Update all data directly from Firebase — no localStorage merge
-        tasks    = data.tasks    || tasks;
-        notes    = data.notes    || notes;
-        statuses = data.statuses || statuses;
-        labels   = data.labels   || labels;
-        trash    = data.trash    || trash;
+        // Reload deleted IDs from localStorage before merging
+        // so cross-device deletions are respected
+        loadDeletedIds();
+        // Use merge functions so deletion tracking is respected
+        tasks    = mergeTasks(tasks,    data.tasks    || []);
+        notes    = mergeNotes(notes,    data.notes    || []);
+        statuses = mergeStatuses(statuses, data.statuses || []);
+        labels   = mergeLabels(labels,  data.labels   || []);
+        trash    = mergeTrash(trash,    data.trash    || []);
         // Update localStorage to match
         try { localStorage.setItem('tasks-v4', JSON.stringify({tasks:tasks,statuses:statuses,labels:labels,notes:notes,trash:trash})); } catch(e) {}
         setSyncStatus('synced', 'Synced');
-        // Re-render everything
+        patchFixedStatuses();
         renderSidebarLabels();
         renderStatusFilterDropdown();
         renderBulkStatusDropdown();
@@ -1596,10 +1599,12 @@ function focusSync() {
   });
 }
 
-// Sync when app comes to foreground
+// Sync when app comes to foreground — debounced to prevent rapid firing
+var focusSyncTimer = null;
 document.addEventListener('visibilitychange', function() {
   if (document.visibilityState === 'visible' && currentUser) {
-    focusSync();
+    clearTimeout(focusSyncTimer);
+    focusSyncTimer = setTimeout(focusSync, 500);
   }
 });
 function setSyncStatus(state, text) {
@@ -1696,30 +1701,29 @@ function saveToCloud() {
   if (!url) return;
   setSyncStatus('syncing', 'Saving...');
   var payload = { tasks: tasks, statuses: statuses, labels: labels, notes: notes, trash: trash };
-  fetch(url, {
-    method: 'PUT',
-    headers: {'Content-Type':'application/json'},
-    body: JSON.stringify(payload)
-  })
-  .then(function(r){
-    if (r.status === 401) {
-      // token expired — refresh and retry once
+  var doSave = function(token) {
+    return fetch(FIREBASE_DB_URL + '/users/' + currentUser.uid + '/data.json?auth=' + token, {
+      method: 'PUT',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify(payload)
+    }).then(function(r){
+      if (r.status === 401) throw new Error('TOKEN_EXPIRED');
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      setSyncStatus('synced', 'Saved');
+    });
+  };
+  doSave(currentUser.idToken)
+  .catch(function(err) {
+    if (err.message === 'TOKEN_EXPIRED') {
+      // refresh token and retry once
       return refreshAuthToken().then(function(ok) {
         if (!ok) { clearCredentials(); showAuthScreen(); return; }
-        return fetch(getFirebaseUrl(), {
-          method: 'PUT',
-          headers: {'Content-Type':'application/json'},
-          body: JSON.stringify(payload)
-        });
+        return doSave(currentUser.idToken);
       });
     }
-    if (!r.ok) throw new Error('HTTP ' + r.status);
-    setSyncStatus('synced', 'Saved');
-  })
-  .then(function(r){
-    if (r) setSyncStatus('synced', 'Saved');
-  })
-  .catch(function(){ setSyncStatus('error', 'Save failed'); showToast('Could not save to cloud'); });
+    setSyncStatus('error', 'Save failed');
+    showToast('Could not save to cloud');
+  });
 }
 
 function save() {
