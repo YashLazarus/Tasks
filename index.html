@@ -342,6 +342,30 @@ tr.p-row-low    td:first-child{border-left:4px solid var(--blue)}
 .priority-strip{display:none}
 .strip-td{width:0;padding:0 !important}
 
+/* RICH TEXT TOOLBAR */
+.note-toolbar{display:flex;gap:2px;padding:.5rem .6rem;border-bottom:1px solid var(--border);flex-wrap:wrap;background:var(--surface2);border-radius:10px 10px 0 0}
+.note-tb-btn{background:none;border:none;cursor:pointer;color:var(--muted);padding:5px 8px;border-radius:6px;font-size:.82rem;font-weight:600;font-family:var(--sans);transition:all .15s;display:inline-flex;align-items:center;justify-content:center;min-width:30px;line-height:1}
+.note-tb-btn:hover{background:var(--faint);color:var(--text)}
+.note-tb-btn.active{background:var(--accent-dim);color:var(--accent)}
+.note-tb-sep{width:1px;background:var(--border);margin:4px 3px;align-self:stretch}
+.note-editor-body{width:100%;background:transparent;border:none;font-family:var(--sans);font-size:.88rem;color:var(--text);outline:none;resize:none;min-height:120px;line-height:1.7;padding:.75rem 0 0}
+.note-editor-body[contenteditable]{cursor:text;word-break:break-word}
+.note-editor-body[contenteditable]:empty::before{content:attr(data-placeholder);color:var(--muted);pointer-events:none}
+.note-editor-body ul{padding-left:1.4rem;margin:.3rem 0}
+.note-editor-body ol{padding-left:1.4rem;margin:.3rem 0}
+.note-editor-body li{margin:.15rem 0}
+.note-editor-body b,.note-editor-body strong{font-weight:700}
+.note-editor-body i,.note-editor-body em{font-style:italic}
+.note-editor-body u{text-decoration:underline}
+.note-editor-body s{text-decoration:line-through}
+.note-editor-body h3{font-size:1rem;font-weight:700;margin:.4rem 0 .2rem}
+/* Note card body renders HTML */
+.note-card-body{font-size:.82rem;color:var(--muted);line-height:1.5;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+.note-card-body b,.note-card-body strong{font-weight:700}
+.note-card-body i,.note-card-body em{font-style:italic}
+.note-card-body ul{padding-left:1.2rem}
+.note-card-body ol{padding-left:1.2rem}
+
 /* NOTES */
 .notes-page{display:none}
 .notes-page.active{display:block}
@@ -764,7 +788,25 @@ html.dark .loading{background:#0f0f14}
     </div>
     <div class="note-editor" id="note-editor" style="display:none">
       <input type="text" class="note-editor-title" id="note-title" placeholder="Title (optional)">
-      <textarea class="note-editor-body" id="note-body" placeholder="Start writing..."></textarea>
+      <div class="note-toolbar" id="note-toolbar">
+        <button class="note-tb-btn" id="tb-bold"   onclick="tbFormat('bold')"          title="Bold (Ctrl+B)"><b>B</b></button>
+        <button class="note-tb-btn" id="tb-italic" onclick="tbFormat('italic')"        title="Italic (Ctrl+I)"><i>I</i></button>
+        <button class="note-tb-btn" id="tb-under"  onclick="tbFormat('underline')"     title="Underline (Ctrl+U)"><u>U</u></button>
+        <button class="note-tb-btn" id="tb-strike" onclick="tbFormat('strikeThrough')" title="Strikethrough"><s>S</s></button>
+        <span class="note-tb-sep"></span>
+        <button class="note-tb-btn" id="tb-ul"     onclick="tbFormat('insertUnorderedList')" title="Bullet list">
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><circle cx="2" cy="4" r="1.2" fill="currentColor"/><circle cx="2" cy="8" r="1.2" fill="currentColor"/><circle cx="2" cy="12" r="1.2" fill="currentColor"/><path d="M5 4h8M5 8h8M5 12h8" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
+        </button>
+        <button class="note-tb-btn" id="tb-ol"     onclick="tbFormat('insertOrderedList')" title="Numbered list">
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M1 2h2v4M1 6h2M5 4h8M5 8h8M5 12h8" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/><path d="M1 9.5c0-.8.6-1.5 1.5-1.5s1.5.5 1.5 1c0 .6-.5 1-1 1.5L1 12h3" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+        <span class="note-tb-sep"></span>
+        <button class="note-tb-btn" id="tb-h3"     onclick="tbFormatBlock('h3')"       title="Heading"><b style="font-size:.9rem">H</b></button>
+        <button class="note-tb-btn" id="tb-clear"  onclick="tbClearFormat()"           title="Clear formatting">
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M2 12l8-8M4 2l8 8M10 2l2 2-8 8H2v-2L10 2z" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+      </div>
+      <div class="note-editor-body" id="note-body" contenteditable="true" data-placeholder="Start writing..."></div>
       <div class="note-editor-footer">
         <span class="note-editor-ts" id="note-editor-ts"></span>
         <div style="display:flex;gap:8px">
@@ -2708,6 +2750,59 @@ function saveTask() {
   showToast('Task updated');
 }
 
+// ── RICH TEXT TOOLBAR ───────────────────────────────────
+function tbFormat(cmd) {
+  document.getElementById('note-body').focus();
+  document.execCommand(cmd, false, null);
+  updateToolbarState();
+}
+
+function tbFormatBlock(tag) {
+  document.getElementById('note-body').focus();
+  // toggle — if already in this block, revert to normal
+  document.execCommand('formatBlock', false, tag);
+  updateToolbarState();
+}
+
+function tbClearFormat() {
+  document.getElementById('note-body').focus();
+  document.execCommand('removeFormat', false, null);
+  document.execCommand('formatBlock', false, 'div');
+  updateToolbarState();
+}
+
+function updateToolbarState() {
+  var cmds = {
+    'tb-bold':   'bold',
+    'tb-italic': 'italic',
+    'tb-under':  'underline',
+    'tb-strike': 'strikeThrough',
+    'tb-ul':     'insertUnorderedList',
+    'tb-ol':     'insertOrderedList'
+  };
+  Object.keys(cmds).forEach(function(id) {
+    var el = document.getElementById(id);
+    if (!el) return;
+    try {
+      if (document.queryCommandState(cmds[id])) {
+        el.classList.add('active');
+      } else {
+        el.classList.remove('active');
+      }
+    } catch(e) {}
+  });
+}
+
+// Update toolbar state on selection change
+document.addEventListener('selectionchange', function() {
+  var bodyEl = document.getElementById('note-body');
+  if (!bodyEl) return;
+  var sel = window.getSelection();
+  if (sel && bodyEl.contains(sel.anchorNode)) {
+    updateToolbarState();
+  }
+});
+
 // ── NOTES ───────────────────────────────────────────────
 function formatTs(ts) {
   if (!ts) return '';
@@ -2766,7 +2861,10 @@ function renderNotes() {
   var q = document.getElementById('search').value.toLowerCase();
   var filtered = notes.filter(function(n) {
     if (!q) return true;
-    return (n.title||'').toLowerCase().includes(q) || (n.body||'').toLowerCase().includes(q);
+    var tempDiv2 = document.createElement('div');
+    tempDiv2.innerHTML = n.body || '';
+    var plainBody2 = tempDiv2.innerText || tempDiv2.textContent || '';
+    return (n.title||'').toLowerCase().includes(q) || plainBody2.toLowerCase().includes(q);
   });
   var label = document.getElementById('notes-count-label');
   if (label) label.textContent = filtered.length + ' note' + (filtered.length !== 1 ? 's' : '');
@@ -2778,13 +2876,17 @@ function renderNotes() {
   // sort by last edited desc
   filtered = filtered.slice().sort(function(a,b){ return (b.updatedAt||b.createdAt) - (a.updatedAt||a.createdAt); });
   grid.innerHTML = filtered.map(function(n) {
-    var displayTitle = n.title || (n.body||'').split('\n')[0].substring(0,60) || 'Untitled';
+    // strip HTML for title derivation and search
+    var tempDiv = document.createElement('div');
+    tempDiv.innerHTML = n.body || '';
+    var plainBody = tempDiv.innerText || tempDiv.textContent || '';
+    var displayTitle = n.title || plainBody.split('\n')[0].substring(0,60) || 'Untitled';
     return '<div class="note-card" onclick="openNote(\''+n.id+'\')">'
       +'<button class="note-card-del" onclick="deleteNote(event,\''+n.id+'\')" title="Delete note">'
         +'<svg width="13" height="13" viewBox="0 0 13 13" fill="none"><path d="M2 3.5h9M5 3.5V2.5h3v1M5.5 6v4M7.5 6v4M3 3.5l.7 7h5.6L10 3.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>'
       +'</button>'
       +'<div class="note-card-title">'+escapeHTML(displayTitle)+'</div>'
-      +(n.body ? '<div class="note-card-body">'+escapeHTML(n.body)+'</div>' : '')
+      +(n.body ? '<div class="note-card-body">'+n.body+'</div>' : '')
       +'<div class="note-card-ts">'
         +'<span>Created '+formatTs(n.createdAt)+'</span>'
         +(n.updatedAt && n.updatedAt !== n.createdAt ? '<span>Edited '+formatTs(n.updatedAt)+'</span>' : '')
@@ -2796,9 +2898,10 @@ function renderNotes() {
 function newNote() {
   editingNoteId = null;
   document.getElementById('note-title').value = '';
-  document.getElementById('note-body').value  = '';
+  document.getElementById('note-body').innerHTML = '';
   document.getElementById('note-editor-ts').textContent = '';
   document.getElementById('note-editor').style.display = 'block';
+  updateToolbarState();
   setTimeout(function(){ document.getElementById('note-body').focus(); }, 80);
 }
 
@@ -2807,18 +2910,22 @@ function openNote(id) {
   if (!n) return;
   editingNoteId = id;
   document.getElementById('note-title').value = n.title || '';
-  document.getElementById('note-body').value  = n.body  || '';
+  document.getElementById('note-body').innerHTML = n.body || '';
   document.getElementById('note-editor-ts').textContent =
     'Created ' + formatTs(n.createdAt) + (n.updatedAt && n.updatedAt !== n.createdAt ? '  ·  Edited ' + formatTs(n.updatedAt) : '');
   document.getElementById('note-editor').style.display = 'block';
   document.getElementById('note-editor').scrollIntoView({behavior:'smooth', block:'start'});
+  updateToolbarState();
   setTimeout(function(){ document.getElementById('note-body').focus(); }, 80);
 }
 
 function saveNote() {
-  var title = document.getElementById('note-title').value.trim();
-  var body  = document.getElementById('note-body').value.trim();
-  if (!title && !body) { showToast('Please write something first'); return; }
+  var title   = document.getElementById('note-title').value.trim();
+  var bodyEl  = document.getElementById('note-body');
+  var body    = bodyEl.innerHTML.trim();
+  // treat empty contenteditable as truly empty
+  var textContent = bodyEl.innerText.trim();
+  if (!title && !textContent) { showToast('Please write something first'); return; }
   var now = Date.now();
   if (editingNoteId) {
     var n = notes.find(function(x){ return x.id === editingNoteId; });
@@ -2836,7 +2943,7 @@ function saveNote() {
 function cancelNote() {
   document.getElementById('note-editor').style.display = 'none';
   document.getElementById('note-title').value = '';
-  document.getElementById('note-body').value  = '';
+  document.getElementById('note-body').innerHTML = '';
   editingNoteId = null;
 }
 
