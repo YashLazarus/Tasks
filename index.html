@@ -1489,6 +1489,15 @@ function signOut() {
         tasks = []; notes = []; statuses = JSON.parse(JSON.stringify(DEFAULT_STATUSES));
         labels = []; trash = [];
         try { localStorage.removeItem('tasks-v4'); } catch(e) {}
+        // clear deleted ID trackers so next user's data isn't affected
+        try { localStorage.removeItem('deleted-ids-v4'); } catch(e) {}
+        try { localStorage.removeItem('deleted-note-ids-v4'); } catch(e) {}
+        try { localStorage.removeItem('deleted-status-ids-v4'); } catch(e) {}
+        try { localStorage.removeItem('deleted-label-ids-v4'); } catch(e) {}
+        while(deletedIds.length) deletedIds.pop();
+        while(deletedNoteIds.length) deletedNoteIds.pop();
+        while(deletedStatusIds.length) deletedStatusIds.pop();
+        while(deletedLabelIds.length) deletedLabelIds.pop();
         setSyncStatus('', '');
         showAuthScreen();
         showToast('Signed out');
@@ -1867,6 +1876,7 @@ function restoreFromTrash(trashId) {
     var restored = JSON.parse(JSON.stringify(entry.data));
     if (notStarted) restored.status = notStarted.id;
     restored.updatedAt = Date.now();
+    restored.generated = false;
     tasks.push(restored);
     showToast('Task restored');
   } else if (entry.type === 'note') {
@@ -2051,6 +2061,7 @@ function focusSync() {
         try { localStorage.setItem('tasks-v4', JSON.stringify({tasks:tasks,statuses:statuses,labels:labels,notes:notes,trash:trash})); } catch(e) {}
         setSyncStatus('synced', 'Synced');
         patchFixedStatuses();
+        checkRecurringTasks();
         renderSidebarLabels();
         renderStatusFilterDropdown();
         renderBulkStatusDropdown();
@@ -2307,7 +2318,8 @@ function checkRecurringTasks() {
         labels: (t.labels||[]).slice(),
         status: notStarted ? notStarted.id : t.status,
         subtasks: (t.subtasks||[]).map(function(s){ return {name:s.name,done:false}; }),
-        recur: Object.assign({}, t.recur)
+        recur: Object.assign({}, t.recur),
+        generated: true
       });
       added = true;
     }
@@ -2476,9 +2488,9 @@ function subtaskRowsHTML(t) {
 }
 
 function isFutureRecurring(t) {
-  // returns true if task is a future recurring placeholder (due date > today, not yet actionable)
+  // returns true only for auto-generated future placeholders — not manually created recurring tasks
   if (!t.recur || !t.recur.groupId) return false;
-  return daysFrom(t.due) > 0 && !isDoneStatus(t.status);
+  return t.generated === true && daysFrom(t.due) > 0 && !isDoneStatus(t.status);
 }
 
 function getFilteredList() {
@@ -3122,6 +3134,15 @@ function saveTask() {
   if (!due)  { document.getElementById('f-due').focus();  showToast('Please select a due date');  return; }
   var now = Date.now();
   var recurData = getRecurData();
+  // block past start dates for new recurring tasks
+  if (!editingId && recurData) {
+    var todayStr2 = padDate(getToday());
+    if (due < todayStr2) {
+      document.getElementById('f-due').focus();
+      showToast('Recurring tasks must start today or in the future');
+      return;
+    }
+  }
   var data = {
     name:      name,
     desc:      document.getElementById('f-desc').value.trim(),
@@ -3150,13 +3171,14 @@ function saveTask() {
             x.labels   = data.labels.slice();
             x.recur    = recurData ? Object.assign({groupId:groupId}, recurData) : null;
             x.updatedAt = data.updatedAt;
+            x.generated = false;
             // reset subtasks template for future, keep current instance as-is
             if (x.id !== editingId) x.subtasks = (data.subtasks||[]).map(function(s){ return {name:s.name,done:false}; });
             else x.subtasks = data.subtasks.slice();
           }
         });
       } else {
-        tasks[idx] = Object.assign({}, tasks[idx], data);
+        tasks[idx] = Object.assign({}, tasks[idx], data, {generated: false});
         // if adding recurrence to non-recurring task, create group
         if (recurData) {
           var gid = 'grp-'+Date.now();
@@ -3165,7 +3187,7 @@ function saveTask() {
       }
     }
   } else {
-    var newTask = Object.assign({id:Date.now(), created:Date.now()}, data);
+    var newTask = Object.assign({id:generateId(), created:Date.now()}, data);
     if (recurData) {
       var newGid = 'grp-'+Date.now();
       newTask.recur = Object.assign({groupId:newGid}, recurData);
@@ -3467,7 +3489,12 @@ function markComplete(id) {
             var t2 = tasks.find(function(x){ return x.id===capturedMarkId; }); if (!t2) return;
             t2.status = doneStatus2 ? doneStatus2.id : t2.status;
             t2.updatedAt = Date.now();
-            save(); render(); showToast('Task marked complete');
+            save(); render();
+            if (t2.recur && t2.recur.groupId) {
+              showToast('Only this instance is done — future instances will continue as scheduled');
+            } else {
+              showToast('Task marked complete');
+            }
         }},
         { label: 'Cancel', cls: 'neutral', action: null }
       ]
@@ -3477,7 +3504,12 @@ function markComplete(id) {
   var doneStatus = statuses.find(function(s){ return s.name==='Done'; });
   t.status = doneStatus ? doneStatus.id : t.status;
   t.updatedAt = Date.now();
-  save(); render(); showToast('Task marked complete');
+  save(); render();
+  if (t.recur && t.recur.groupId) {
+    showToast('Only this instance is done — future instances will continue as scheduled');
+  } else {
+    showToast('Task marked complete');
+  }
 }
 
 function reopenTask(id) {
@@ -3537,7 +3569,12 @@ function openDatePickerCard(id) {
 function updateDate(id, val) {
   var t = tasks.find(function(x){ return x.id===id; }); if (!t||!val) return;
   t.due = val; t.updatedAt = Date.now();
-  save(); render(); showToast('Due date updated');
+  save(); render();
+  if (t.recur && t.recur.groupId) {
+    showToast('Due date updated — only this instance affected');
+  } else {
+    showToast('Due date updated');
+  }
 }
 
 function deleteTask(id) {
@@ -4038,6 +4075,7 @@ function makeKCard(t) {
         +'<div class="kcard-name'+(doneStatus?' done':'')+'">'+escapeHTML(t.name)+'</div>'
         +dotsHTML
         +(t.desc?'<div class="kcard-desc">'+escapeHTML(t.desc)+'</div>':'')
+        +(t.recur&&t.recur.type?'<div class="recur-badge" style="margin-top:4px"><svg width="9" height="9" viewBox="0 0 14 14" fill="none"><path d="M2 7A5 5 0 1 0 7 2H5m0 0L3 4m2-2L3 0" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>'+recurLabel(t.recur)+'</div>':'')
       +'</div>'
     +'</div>'
     +'<div class="kcard-meta">'
@@ -4108,7 +4146,11 @@ function dropKTask(targetStatusId) {
             var t2 = tasks.find(function(x){ return x.id===capturedId; });
             if (t2) { t2.status=capturedSid; t2.updatedAt=Date.now(); }
             save(); renderKanban(); render();
-            showToast('Task moved to Done');
+            if (t2 && t2.recur && t2.recur.groupId) {
+              showToast('Only this instance is done — future instances will continue as scheduled');
+            } else {
+              showToast('Task moved to Done');
+            }
           }},
           { label:'Cancel', cls:'neutral', action:null }
         ]
@@ -4124,6 +4166,13 @@ function dropKTask(targetStatusId) {
   save();
   renderKanban();
   render();
+  // toast — recurring-specific or generic
+  if (t.recur && t.recur.groupId) {
+    if (targetStatus.name === 'Done')      { showToast('Only this instance is done — future instances will continue as scheduled'); return; }
+    if (targetStatus.name === 'Cancelled') { showToast('Only this instance is cancelled — future instances will continue as scheduled'); return; }
+    if (targetStatus.name === 'Backlog')   { showToast('Only this instance is backlogged — future instances will continue as scheduled'); return; }
+  }
+  showToast('Status updated');
 }
 
 // ── COLUMN HIDE/SHOW ─────────────────────────────────────
@@ -4224,7 +4273,11 @@ function openMoveMenu(taskId, e) {
                   t.status = capturedS.id; t.updatedAt = Date.now();
                   save(); renderKanban(); render();
                   if (kBacklogOpen) renderBacklogPanel();
-                  showToast('Moved to Done');
+                  if (t.recur && t.recur.groupId) {
+                    showToast('Only this instance is done — future instances will continue as scheduled');
+                  } else {
+                    showToast('Moved to Done');
+                  }
                 }},
                 { label:'Cancel', cls:'neutral', action:null }
               ]
@@ -4235,6 +4288,12 @@ function openMoveMenu(taskId, e) {
         t.status = s.id; t.updatedAt = Date.now();
         save(); renderKanban(); render();
         if (kBacklogOpen) renderBacklogPanel();
+        // toast — recurring-specific or generic
+        if (t.recur && t.recur.groupId) {
+          if (s.name === 'Done')      { showToast('Only this instance is done — future instances will continue as scheduled'); return; }
+          if (s.name === 'Cancelled') { showToast('Only this instance is cancelled — future instances will continue as scheduled'); return; }
+          if (s.name === 'Backlog')   { showToast('Only this instance is backlogged — future instances will continue as scheduled'); return; }
+        }
         showToast('Moved to '+s.name);
       }};
     });
