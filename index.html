@@ -439,6 +439,7 @@ html.dark .board-scroll::-webkit-scrollbar-thumb:hover{background:#6a6a8a}
 .kcard-footer{display:flex;align-items:center;justify-content:space-between;margin-top:6px;padding-top:5px;border-top:1px solid var(--border)}
 .kcard-subtasks{font-family:var(--mono);font-size:.63rem;color:var(--muted);display:flex;align-items:center;gap:3px}
 .kcard-assignee{font-family:var(--mono);font-size:.62rem;color:var(--muted)}
+.kcard-desc{font-size:.75rem;color:var(--muted);line-height:1.45;margin-top:4px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;word-break:break-word}
 .kcard-actions{display:flex;gap:2px;opacity:0;transition:opacity .15s}
 .kcard:hover .kcard-actions{opacity:1}
 .kcard-action-btn{background:none;border:none;cursor:pointer;color:var(--muted);padding:3px;border-radius:5px;display:flex;align-items:center;transition:all .15s}
@@ -452,6 +453,15 @@ html.dark .board-scroll::-webkit-scrollbar-thumb:hover{background:#6a6a8a}
 .kcard-move-btn{display:none;width:100%;margin-top:7px;padding:.4rem;background:var(--surface2);border:1px solid var(--border);border-radius:7px;font-family:var(--sans);font-size:.75rem;font-weight:600;color:var(--muted);cursor:pointer;transition:all .15s;text-align:center}
 .kcard-move-btn:hover{color:var(--text);background:var(--faint)}
 @media(max-width:768px){.kcard-move-btn{display:block}.kcard{cursor:default}}
+
+/* Board date filter chips */
+.board-date-filters{display:flex;align-items:center;gap:5px}
+.board-date-chip{display:inline-flex;align-items:center;gap:4px;padding:.38rem .75rem;border-radius:20px;font-family:var(--mono);font-size:.68rem;font-weight:600;cursor:pointer;border:1.5px solid var(--border2);background:var(--surface);color:var(--muted);transition:all .15s;user-select:none;white-space:nowrap}
+.board-date-chip:hover{color:var(--text)}
+.board-date-chip.active{background:var(--accent-dim);border-color:var(--accent);color:var(--accent)}
+.board-date-chip.active-red{background:var(--red-dim);border-color:var(--red);color:var(--red)}
+.board-date-chip.active-amber{background:var(--amber-dim);border-color:var(--amber);color:var(--amber)}
+.board-date-chip.active-blue{background:var(--blue-dim);border-color:var(--blue);color:var(--blue)}
 
 /* Label filter chips */
 .board-label-filters{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
@@ -849,6 +859,12 @@ html.dark .loading{background:#0f0f14}
           Columns
         </button>
         <div class="kcol-manager" id="kcol-manager"></div>
+        <div class="board-date-filters" id="board-date-filters">
+          <span class="board-date-chip active" data-datefilter="all">All</span>
+          <span class="board-date-chip" data-datefilter="overdue">Overdue</span>
+          <span class="board-date-chip" data-datefilter="today">Today</span>
+          <span class="board-date-chip" data-datefilter="week">This Week</span>
+        </div>
         <div class="board-label-filters" id="board-label-filters"></div>
         <button class="backlog-chip" id="backlog-chip" onclick="toggleBacklogPanel()">
           <svg width="11" height="11" viewBox="0 0 11 11" fill="none"><rect x="1" y="1" width="9" height="9" rx="1.5" stroke="currentColor" stroke-width="1.3"/><path d="M3.5 5.5h4M5.5 3.5v4" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
@@ -3485,6 +3501,7 @@ function initSidebarState() {
 
 // ── BOARD LABEL FILTER ────────────────────────────────────
 var kActiveLabelIds = []; // empty = show all
+var kDateFilter = 'all'; // all | overdue | today | week
 
 function renderBoardLabelFilters() {
   var container = document.getElementById('board-label-filters');
@@ -3506,6 +3523,20 @@ function renderBoardLabelFilters() {
     +'</span>';
   }).join('');
   container.innerHTML = html;
+}
+
+function kSetDateFilter(filter) {
+  kDateFilter = filter;
+  document.querySelectorAll('[data-datefilter]').forEach(function(chip) {
+    chip.classList.remove('active','active-red','active-amber','active-blue');
+    if (chip.dataset.datefilter === filter) {
+      if (filter==='overdue') chip.classList.add('active-red');
+      else if (filter==='today') chip.classList.add('active-amber');
+      else if (filter==='week') chip.classList.add('active-blue');
+      else chip.classList.add('active');
+    }
+  });
+  renderKanban();
 }
 
 function kSetLabelFilter(labelId) {
@@ -3573,11 +3604,18 @@ function switchToBoard() {
 }
 
 function getKanbanTasks() {
-  // Board always shows all tasks — no sidebar filter applied
-  // But respect isFutureRecurring same as list view
-  // Apply label filter if active
+  var today = getToday();
   return tasks.filter(function(t) {
     if (isFutureRecurring(t)) return false;
+    // Date filter
+    if (kDateFilter !== 'all') {
+      var d = new Date(t.due+'T00:00:00'); d.setHours(0,0,0,0);
+      var diff = Math.round((d - today) / 86400000);
+      if (kDateFilter === 'overdue') { if (diff >= 0 || diff < -7) return false; }
+      else if (kDateFilter === 'today') { if (diff !== 0) return false; }
+      else if (kDateFilter === 'week') { if (diff < -7 || diff > 7) return false; }
+    }
+    // Label filter
     if (kActiveLabelIds.length === 0) return true;
     return kActiveLabelIds.some(function(lid){ return (t.labels||[]).indexOf(lid) >= 0; });
   });
@@ -3819,12 +3857,13 @@ function makeKCard(t) {
       +'<div style="flex:1;min-width:0">'
         +'<div class="kcard-name'+(doneStatus?' done':'')+'">'+escapeHTML(t.name)+'</div>'
         +dotsHTML
+        +(t.desc?'<div class="kcard-desc">'+escapeHTML(t.desc)+'</div>':'')
       +'</div>'
     +'</div>'
     +'<div class="kcard-meta">'
       +'<span class="kcard-date '+dl.cls+'">'
         +'<svg width="9" height="9" viewBox="0 0 11 11" fill="none"><rect x="1" y="2" width="9" height="8" rx="1.5" stroke="currentColor" stroke-width="1.2"/><path d="M3.5 1v2M7.5 1v2M1 5h9" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>'
-        +new Date(t.due+'T00:00:00').toLocaleDateString('en-GB',{day:'2-digit',month:'short'})
+        +dl.text
       +'</span>'
       +labelsHTML
     +'</div>'
@@ -3856,12 +3895,14 @@ function kDaysLabel(t) {
   var d = new Date(t.due+'T00:00:00'); d.setHours(0,0,0,0);
   var today = getToday();
   var diff = Math.round((d - today) / 86400000);
-  if (isDoneStatus(t.status)) return { cls:'' };
+  var dateStr = new Date(t.due+'T00:00:00').toLocaleDateString('en-GB',{day:'2-digit',month:'short'});
+  if (isDoneStatus(t.status)) return { cls:'', text: dateStr };
   var sObj = getStatusById(t.status);
-  if (sObj && (sObj.name==='Cancelled'||sObj.name==='Backlog')) return { cls:'' };
-  if (diff < 0) return { cls:'overdue' };
-  if (diff === 0) return { cls:'today' };
-  return { cls:'' };
+  if (sObj && (sObj.name==='Cancelled'||sObj.name==='Backlog')) return { cls:'', text: dateStr };
+  if (diff < 0) { var days=Math.abs(diff); return { cls:'overdue', text: days+'d overdue' }; }
+  if (diff === 0) return { cls:'today', text:'Due today' };
+  if (diff === 1) return { cls:'', text:'Tomorrow' };
+  return { cls:'', text: dateStr };
 }
 
 // ── DRAG DROP ────────────────────────────────────────────
@@ -3957,15 +3998,26 @@ function renderBacklogPanel() {
   }
   container.innerHTML = btasks.map(function(t){
     var dl = kDaysLabel(t);
-    return '<div class="kcard p-kcard-'+t.priority+'" style="width:240px;flex-shrink:0;cursor:default">'
+    var hasSubs = t.subtasks && t.subtasks.length > 0;
+    var doneSubs = hasSubs ? t.subtasks.filter(function(s){ return s.done; }).length : 0;
+    var descH = t.desc ? '<div class="kcard-desc">'+escapeHTML(t.desc)+'</div>' : '';
+    var dotsH = hasSubs ? '<div class="progress-dots" style="margin:3px 0 2px">'
+      + t.subtasks.map(function(s){ return '<span class="progress-dot'+(s.done?' filled':'')+'"></span>'; }).join('')
+      + '</div>' : '';
+    return '<div class="kcard p-kcard-'+t.priority+'" style="width:260px;flex-shrink:0">'
       +'<div class="kcard-name">'+escapeHTML(t.name)+'</div>'
-      +'<div class="kcard-meta">'
+      +dotsH+descH
+      +'<div class="kcard-meta" style="margin-top:6px">'
         +'<span class="kcard-date '+dl.cls+'">'
           +'<svg width="9" height="9" viewBox="0 0 11 11" fill="none"><rect x="1" y="2" width="9" height="8" rx="1.5" stroke="currentColor" stroke-width="1.2"/><path d="M3.5 1v2M7.5 1v2M1 5h9" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>'
-          +new Date(t.due+'T00:00:00').toLocaleDateString('en-GB',{day:'2-digit',month:'short'})
+          +dl.text
         +'</span>'
       +'</div>'
-      +'<button class="kcard-move-btn" style="display:block" onclick="openMoveMenu('+t.id+',event)">Move to →</button>'
+      +'<div style="display:flex;gap:6px;margin-top:8px">'
+        +'<button class="kcard-move-btn" style="display:block;flex:1" onclick="openMoveMenu('+t.id+',event)">Move to →</button>'
+        +'<button class="kcard-action-btn" title="Edit" style="padding:6px 8px;border:1px solid var(--border);border-radius:7px;background:var(--surface2)" onclick="openModal('+t.id+');event.stopPropagation()"><svg width="11" height="11" viewBox="0 0 13 13" fill="none"><path d="M9 2l2 2-7 7H2V9L9 2z" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/></svg></button>'
+        +'<button class="kcard-action-btn del" title="Delete" style="padding:6px 8px;border:1px solid var(--border);border-radius:7px;background:var(--surface2)" onclick="deleteTask('+t.id+');event.stopPropagation()"><svg width="11" height="11" viewBox="0 0 13 13" fill="none"><path d="M2 3.5h9M5 3.5V2.5h3v1M5.5 6v4M7.5 6v4M3 3.5l.7 7h5.6L10 3.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg></button>'
+      +'</div>'
     +'</div>';
   }).join('');
 }
@@ -4170,6 +4222,9 @@ document.addEventListener('click', function(e) {
   // Kanban col manager toggle
   var toggleBtn = e.target.closest('[data-togglecol]');
   if (toggleBtn) { toggleKColVisibility(toggleBtn.dataset.togglecol); return; }
+  // Board date filter chips
+  var dateChip = e.target.closest('[data-datefilter]');
+  if (dateChip) { kSetDateFilter(dateChip.dataset.datefilter); return; }
   // Board label filter — all
   var allLabelBtn = e.target.closest('[data-setalllabel]');
   if (allLabelBtn) { kSetLabelFilter(null); return; }
