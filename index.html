@@ -455,13 +455,14 @@ html.dark .board-scroll::-webkit-scrollbar-thumb:hover{background:#6a6a8a}
 @media(max-width:768px){.kcard-move-btn{display:block}.kcard{cursor:default}}
 
 /* Board date filter chips */
-.board-date-filters{display:flex;align-items:center;gap:5px}
-.board-date-chip{display:inline-flex;align-items:center;gap:4px;padding:.38rem .75rem;border-radius:20px;font-family:var(--mono);font-size:.68rem;font-weight:600;cursor:pointer;border:1.5px solid var(--border2);background:var(--surface);color:var(--muted);transition:all .15s;user-select:none;white-space:nowrap}
+/* Date filter tabs */
+.board-date-filters{display:flex;align-items:center;gap:0;border-bottom:2px solid var(--border);margin-bottom:0}
+.board-date-chip{display:inline-flex;align-items:center;padding:.45rem .85rem;font-family:var(--mono);font-size:.68rem;font-weight:600;cursor:pointer;border:none;background:transparent;color:var(--muted);transition:all .15s;user-select:none;white-space:nowrap;position:relative;margin-bottom:-2px;border-bottom:2px solid transparent}
 .board-date-chip:hover{color:var(--text)}
-.board-date-chip.active{background:var(--accent-dim);border-color:var(--accent);color:var(--accent)}
-.board-date-chip.active-red{background:var(--red-dim);border-color:var(--red);color:var(--red)}
-.board-date-chip.active-amber{background:var(--amber-dim);border-color:var(--amber);color:var(--amber)}
-.board-date-chip.active-blue{background:var(--blue-dim);border-color:var(--blue);color:var(--blue)}
+.board-date-chip.active{color:var(--text);border-bottom:2px solid var(--text)}
+.board-date-chip.active-red{color:var(--red);border-bottom:2px solid var(--red)}
+.board-date-chip.active-amber{color:var(--amber);border-bottom:2px solid var(--amber)}
+.board-date-chip.active-blue{color:var(--accent);border-bottom:2px solid var(--accent)}
 
 /* Label filter chips */
 .board-label-filters{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
@@ -517,6 +518,81 @@ html.dark .board-scroll::-webkit-scrollbar-thumb:hover{background:#6a6a8a}
 .kpanel-edit-btn:hover{opacity:.88}
 .kpanel-del-btn{padding:.6rem .9rem;background:var(--red-dim);color:var(--red);border:1px solid rgba(220,38,38,.2);border-radius:9px;font-family:var(--sans);font-size:.84rem;font-weight:600;cursor:pointer;transition:opacity .15s}
 .kpanel-del-btn:hover{opacity:.8}
+
+/* ── FOCUS TIMER ── */
+/* Collapsed chip */
+.focus-chip{position:fixed;bottom:24px;right:24px;z-index:200;display:flex;align-items:center;gap:10px;background:#1a1a2e;border-radius:14px;padding:10px 14px;cursor:pointer;box-shadow:0 4px 20px rgba(0,0,0,.25),0 1px 4px rgba(0,0,0,.15);transition:all .2s;min-width:148px;user-select:none}
+html.dark .focus-chip{background:#12121c}
+.focus-chip:hover{transform:translateY(-2px);box-shadow:0 8px 28px rgba(0,0,0,.3)}
+.focus-chip.running::before{content:'';position:absolute;inset:0;background:radial-gradient(circle at 20% 50%,rgba(99,102,241,.15) 0%,transparent 70%);pointer-events:none;border-radius:14px}
+.chip-arc-wrap{position:relative;width:34px;height:34px;flex-shrink:0}
+.chip-arc{transform:rotate(-90deg)}
+.chip-arc-bg{fill:none;stroke:rgba(255,255,255,.1);stroke-width:3}
+.chip-arc-fg{fill:none;stroke-width:3;stroke-linecap:round;transition:stroke-dashoffset .5s ease,stroke .3s}
+.chip-arc-time{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-family:var(--mono);font-size:.5rem;font-weight:500;color:rgba(255,255,255,.85);white-space:nowrap}
+.chip-right{display:flex;flex-direction:column;gap:2px}
+.chip-time-big{font-family:var(--mono);font-size:.9rem;font-weight:500;color:#fff;letter-spacing:.04em;line-height:1;transition:color .3s}
+.chip-time-big.paused{color:#fbbf24}
+.chip-time-big.idle{color:rgba(255,255,255,.5)}
+.chip-meta{font-family:var(--mono);font-size:.55rem;color:rgba(255,255,255,.4);letter-spacing:.06em}
+.chip-meta .hi{color:rgba(255,255,255,.7)}
+.chip-status-dot{position:absolute;top:8px;right:8px;width:6px;height:6px;border-radius:50%;transition:all .3s}
+.chip-status-dot.idle{background:rgba(255,255,255,.2)}
+.chip-status-dot.running{background:#34d399;box-shadow:0 0 0 2px rgba(52,211,153,.3);animation:ft-blink 2s infinite}
+.chip-status-dot.paused{background:#fbbf24}
+@keyframes ft-blink{0%,100%{opacity:1}50%{opacity:.4}}
+
+/* Expanded widget */
+.focus-widget{position:fixed;bottom:24px;right:24px;z-index:200;width:244px;background:var(--surface);border:1px solid var(--border2);border-radius:20px;box-shadow:0 12px 40px rgba(0,0,0,.12),0 2px 8px rgba(0,0,0,.06);overflow:hidden;display:none}
+html.dark .focus-widget{box-shadow:0 12px 40px rgba(0,0,0,.4),0 2px 8px rgba(0,0,0,.2)}
+.focus-widget.open{display:block}
+.fw-header{display:flex;align-items:center;justify-content:space-between;padding:13px 15px 11px;border-bottom:1px solid var(--border);cursor:grab;background:var(--surface2)}
+.fw-header:active{cursor:grabbing}
+.fw-title{display:flex;align-items:center;gap:7px;font-family:var(--mono);font-size:.62rem;font-weight:500;text-transform:uppercase;letter-spacing:.1em;color:var(--muted)}
+.fw-dot{width:7px;height:7px;border-radius:50%;transition:all .3s;background:var(--border2)}
+.fw-dot.running{background:var(--green);box-shadow:0 0 0 3px var(--green-dim);animation:ft-blink 2s infinite}
+.fw-dot.paused{background:var(--amber)}
+.fw-dot.done{background:var(--green)}
+.fw-controls{display:flex;align-items:center;gap:4px}
+.fw-min-btn{background:none;border:none;cursor:pointer;color:var(--muted);padding:3px 6px;border-radius:5px;font-family:var(--mono);font-size:.75rem;line-height:1;transition:all .15s}
+.fw-min-btn:hover{color:var(--text);background:var(--faint)}
+.fw-x-btn{background:none;border:none;cursor:pointer;color:var(--muted);padding:3px 6px;border-radius:5px;font-size:.85rem;line-height:1;transition:color .15s}
+.fw-x-btn:hover{color:var(--red)}
+.fw-body{padding:20px 16px 14px}
+.fw-ring-wrap{display:flex;justify-content:center;margin-bottom:10px;position:relative}
+.fw-svg{width:114px;height:114px;transform:rotate(-90deg)}
+.fw-ring-bg{fill:none;stroke:var(--faint);stroke-width:7}
+.fw-ring-fg{fill:none;stroke-width:7;stroke-linecap:round;transition:stroke-dashoffset .6s ease,stroke .3s}
+.fw-ring-inner{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);display:flex;flex-direction:column;align-items:center;gap:1px}
+.fw-time{font-family:var(--mono);font-size:1.55rem;font-weight:400;letter-spacing:.04em;line-height:1;transition:color .3s;color:var(--muted)}
+.fw-time.running{color:var(--text)}
+.fw-time.paused{color:var(--amber)}
+.fw-time.done{color:var(--green);font-size:1.9rem}
+.fw-time-sub{font-family:var(--mono);font-size:.55rem;color:var(--muted);letter-spacing:.08em;text-transform:uppercase}
+.fw-lbl{font-family:var(--mono);font-size:.6rem;text-transform:uppercase;letter-spacing:.1em;text-align:center;margin-bottom:12px;color:var(--muted);transition:color .3s;min-height:1em}
+.fw-dots{display:flex;justify-content:center;gap:6px;margin-bottom:16px}
+.fw-dot-session{width:8px;height:8px;border-radius:50%;background:var(--faint);border:1.5px solid var(--border2);transition:all .3s}
+.fw-dot-session.done{background:var(--accent);border-color:var(--accent)}
+.fw-dot-session.current{background:transparent;border-color:var(--accent);animation:ft-pdot 1.5s infinite}
+@keyframes ft-pdot{0%,100%{transform:scale(1)}50%{transform:scale(1.35)}}
+.fw-btns{display:flex;gap:8px}
+.fw-btn{flex:1;padding:10px 8px;border-radius:11px;border:none;cursor:pointer;font-family:var(--sans);font-size:.78rem;font-weight:700;display:flex;align-items:center;justify-content:center;gap:5px;transition:all .15s;white-space:nowrap}
+.fw-btn-primary{background:var(--accent);color:#fff}
+.fw-btn-primary:hover{opacity:.88;transform:translateY(-1px)}
+.fw-btn-secondary{background:var(--surface2);color:var(--text);border:1px solid var(--border)}
+.fw-btn-secondary:hover{background:var(--faint)}
+.fw-btn-danger{background:var(--red-dim);color:var(--red);border:1px solid rgba(220,38,38,.2)}
+.fw-btn-danger:hover{opacity:.8}
+.fw-footer{padding:10px 15px 13px;border-top:1px solid var(--border);margin-top:14px;display:flex;align-items:center;justify-content:space-between}
+.fw-stat{font-family:var(--mono);font-size:.6rem;color:var(--muted)}
+.fw-stat b{color:var(--text);font-weight:600}
+
+/* Settings: num input */
+.fw-num-wrap{display:flex;align-items:center;background:var(--surface2);border:1px solid var(--border2);border-radius:10px;overflow:hidden}
+.fw-num-btn{background:none;border:none;cursor:pointer;color:var(--muted);padding:8px 13px;font-size:1rem;font-weight:600;transition:all .15s;line-height:1}
+.fw-num-btn:hover{background:var(--faint);color:var(--text)}
+.fw-num-val{font-family:var(--mono);font-size:.82rem;font-weight:600;min-width:28px;text-align:center;color:var(--text)}
+.fw-num-unit{font-family:var(--mono);font-size:.68rem;color:var(--muted);padding-right:10px}
 
 /* NOTES */
 .notes-page{display:none}
@@ -854,22 +930,26 @@ html.dark .loading{background:#0f0f14}
     <!-- BOARD VIEW -->
     <div class="board-view" id="board-view">
       <div class="board-toolbar" style="position:relative">
-        <button class="board-col-btn" id="board-col-btn" onclick="toggleKColManager()">
-          <svg width="13" height="13" viewBox="0 0 13 13" fill="none"><rect x="1" y="1" width="3" height="11" rx="1" stroke="currentColor" stroke-width="1.3"/><rect x="5" y="1" width="3" height="7" rx="1" stroke="currentColor" stroke-width="1.3"/><rect x="9" y="1" width="3" height="9" rx="1" stroke="currentColor" stroke-width="1.3"/></svg>
-          Columns
-        </button>
-        <div class="kcol-manager" id="kcol-manager"></div>
+        <!-- Row 1: Columns button + Backlog chip -->
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;flex-wrap:wrap">
+          <button class="board-col-btn" id="board-col-btn" onclick="toggleKColManager()">
+            <svg width="13" height="13" viewBox="0 0 13 13" fill="none"><rect x="1" y="1" width="3" height="11" rx="1" stroke="currentColor" stroke-width="1.3"/><rect x="5" y="1" width="3" height="7" rx="1" stroke="currentColor" stroke-width="1.3"/><rect x="9" y="1" width="3" height="9" rx="1" stroke="currentColor" stroke-width="1.3"/></svg>
+            Columns
+          </button>
+          <div class="kcol-manager" id="kcol-manager"></div>
+          <div class="board-label-filters" id="board-label-filters"></div>
+          <button class="backlog-chip" id="backlog-chip" onclick="toggleBacklogPanel()">
+            <svg width="11" height="11" viewBox="0 0 11 11" fill="none"><rect x="1" y="1" width="9" height="9" rx="1.5" stroke="currentColor" stroke-width="1.3"/><path d="M3.5 5.5h4M5.5 3.5v4" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
+            Backlog · <span id="backlog-count">0</span>
+          </button>
+        </div>
+        <!-- Row 2: Date filter tabs -->
         <div class="board-date-filters" id="board-date-filters">
           <span class="board-date-chip active" data-datefilter="all">All</span>
           <span class="board-date-chip" data-datefilter="overdue">Overdue</span>
           <span class="board-date-chip" data-datefilter="today">Today</span>
           <span class="board-date-chip" data-datefilter="week">This Week</span>
         </div>
-        <div class="board-label-filters" id="board-label-filters"></div>
-        <button class="backlog-chip" id="backlog-chip" onclick="toggleBacklogPanel()">
-          <svg width="11" height="11" viewBox="0 0 11 11" fill="none"><rect x="1" y="1" width="9" height="9" rx="1.5" stroke="currentColor" stroke-width="1.3"/><path d="M3.5 5.5h4M5.5 3.5v4" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
-          Backlog · <span id="backlog-count">0</span>
-        </button>
       </div>
       <div class="board-scroll">
         <div class="board" id="kanban-board"></div>
@@ -912,6 +992,40 @@ html.dark .loading{background:#0f0f14}
       <div class="settings-section">
         <div id="account-info-section"></div>
         <div id="sync-settings-status" style="margin-top:.75rem;font-family:var(--mono);font-size:.75rem;display:flex;align-items:center;gap:6px;color:var(--muted)"></div>
+      </div>
+    </div>
+
+    <!-- GROUP: FOCUS TIMER -->
+    <div class="settings-group">
+      <div class="settings-group-title">
+        <svg width="13" height="13" viewBox="0 0 13 13" fill="none"><circle cx="6.5" cy="6.5" r="5" stroke="currentColor" stroke-width="1.3"/><path d="M6.5 3.5v3l2 1.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        Focus Timer
+      </div>
+      <div class="settings-section">
+        <div class="settings-row" style="display:flex;align-items:center;justify-content:space-between;padding:.75rem 0;border-bottom:1px solid var(--border)">
+          <div>
+            <div style="font-size:.88rem;font-weight:600">Session Duration</div>
+            <div style="font-family:var(--mono);font-size:.63rem;color:var(--muted);margin-top:2px">How long each focus session runs</div>
+          </div>
+          <div class="fw-num-wrap">
+            <button class="fw-num-btn" onclick="focusDurationChange(-5)">−</button>
+            <div class="fw-num-val" id="focus-duration-val">25</div>
+            <div class="fw-num-unit">min</div>
+            <button class="fw-num-btn" onclick="focusDurationChange(5)">+</button>
+          </div>
+        </div>
+        <div class="settings-row" style="display:flex;align-items:center;justify-content:space-between;padding:.75rem 0">
+          <div>
+            <div style="font-size:.88rem;font-weight:600">Sound Notification</div>
+            <div style="font-family:var(--mono);font-size:.63rem;color:var(--muted);margin-top:2px">Ping when session ends</div>
+          </div>
+          <button class="toggle" id="focus-sound-toggle" onclick="focusSoundToggle()"></button>
+        </div>
+        <div style="margin-top:.5rem;text-align:center">
+          <button onclick="openFocusWidget()" style="background:var(--accent-dim);color:var(--accent);border:1px solid rgba(79,70,229,.2);border-radius:9px;padding:.5rem 1.2rem;font-family:var(--sans);font-size:.8rem;font-weight:700;cursor:pointer;transition:opacity .15s" onmouseover="this.style.opacity='.8'" onmouseout="this.style.opacity='1'">
+            Open Focus Timer
+          </button>
+        </div>
       </div>
     </div>
 
@@ -1046,6 +1160,55 @@ html.dark .loading{background:#0f0f14}
     <button class="backlog-panel-close" onclick="toggleBacklogPanel()">✕</button>
   </div>
   <div class="backlog-cards" id="backlog-cards"></div>
+</div>
+
+<!-- FOCUS TIMER CHIP (collapsed) -->
+<div class="focus-chip" id="focus-chip" onclick="openFocusWidget()" style="display:none">
+  <span class="chip-status-dot idle" id="chip-status-dot"></span>
+  <div class="chip-arc-wrap">
+    <svg class="chip-arc" width="34" height="34" viewBox="0 0 34 34">
+      <circle class="chip-arc-bg" cx="17" cy="17" r="13"/>
+      <circle class="chip-arc-fg" id="chip-arc-fg" cx="17" cy="17" r="13" style="stroke:rgba(255,255,255,.2);stroke-dasharray:82;stroke-dashoffset:82"/>
+    </svg>
+    <div class="chip-arc-time" id="chip-arc-time">—</div>
+  </div>
+  <div class="chip-right">
+    <div class="chip-time-big idle" id="chip-time-big">00:00</div>
+    <div class="chip-meta" id="chip-meta">tap to open</div>
+  </div>
+</div>
+
+<!-- FOCUS TIMER WIDGET (expanded) -->
+<div class="focus-widget" id="focus-widget">
+  <div class="fw-header" id="fw-header">
+    <div class="fw-title">
+      <span class="fw-dot" id="fw-dot"></span>
+      <span id="fw-title-text">Focus Timer</span>
+    </div>
+    <div class="fw-controls">
+      <button class="fw-min-btn" onclick="minimiseFocusWidget()" title="Minimise">─</button>
+      <button class="fw-x-btn" onclick="closeFocusWidget()" title="Close">✕</button>
+    </div>
+  </div>
+  <div class="fw-body">
+    <div class="fw-ring-wrap">
+      <svg class="fw-svg" viewBox="0 0 114 114">
+        <circle class="fw-ring-bg" cx="57" cy="57" r="46"/>
+        <circle class="fw-ring-fg" id="fw-ring-fg" cx="57" cy="57" r="46" style="stroke:var(--faint);stroke-dasharray:289;stroke-dashoffset:289"/>
+      </svg>
+      <div class="fw-ring-inner">
+        <div class="fw-time" id="fw-time">00:00</div>
+        <div class="fw-time-sub" id="fw-time-sub">ready</div>
+      </div>
+    </div>
+    <div class="fw-lbl" id="fw-lbl">Start when you're ready</div>
+    <div class="fw-dots" id="fw-dots"></div>
+    <div class="fw-btns" id="fw-btns"></div>
+  </div>
+  <div class="fw-footer">
+    <div class="fw-stat">🍅 <b id="fw-sessions-count">0</b> sessions</div>
+    <div class="fw-stat"><b id="fw-focus-time">0m</b> focus today</div>
+  </div>
 </div>
 
 <!-- TASK MODAL -->
@@ -2162,6 +2325,8 @@ function init() {
   checkRecurringTasks();
   initKColOrder();
   initSidebarState();
+  loadFocusSettings();
+  showFocusTimer();
   // always reset to dashboard view on init
   showingNotes    = false;
   showingSettings = false;
@@ -2602,6 +2767,11 @@ function renderSettingsPage() {
   renderTrash();
   applyDarkMode();
   if (boardView) { renderBoardLabelFilters(); renderKanban(); }
+  // sync focus settings UI
+  var durEl = document.getElementById('focus-duration-val');
+  if (durEl) durEl.textContent = focusSettings.duration;
+  var sndBtn = document.getElementById('focus-sound-toggle');
+  if (sndBtn) sndBtn.classList.toggle('on', focusSettings.sound);
 }
 
 function renderStatusList() {
@@ -4152,6 +4322,399 @@ function kpanelDelete() {
 
 // Re-render kanban after task changes if board view is active
 var _origSave = save;
+
+// ── FOCUS TIMER ──────────────────────────────────────────
+
+// State
+var focusState    = 'idle';    // idle | running | paused | done
+var focusElapsed  = 0;         // seconds elapsed this session
+var focusPauses   = 0;         // pauses this session
+var focusStartedAt = null;     // timestamp when session started
+var focusTick     = null;      // interval ref
+var focusTodaySessions = [];   // sessions logged today
+var focusSettings = { duration: 25, sound: true };
+var focusWidgetPos = null;     // { x, y } saved position
+var CIRCUMFERENCE = 289;       // 2 * pi * 46
+
+function loadFocusSettings() {
+  try {
+    var s = localStorage.getItem('focus-settings');
+    if (s) focusSettings = JSON.parse(s);
+    var d = localStorage.getItem('focus-today-sessions');
+    if (d) {
+      var arr = JSON.parse(d);
+      var today = new Date().toISOString().slice(0,10);
+      focusTodaySessions = arr.filter(function(s){ return s.date === today; });
+    }
+  } catch(e) {}
+}
+
+function saveFocusSettings() {
+  try { localStorage.setItem('focus-settings', JSON.stringify(focusSettings)); } catch(e) {}
+}
+
+function focusDurationChange(delta) {
+  focusSettings.duration = Math.min(120, Math.max(5, focusSettings.duration + delta));
+  saveFocusSettings();
+  var el = document.getElementById('focus-duration-val');
+  if (el) el.textContent = focusSettings.duration;
+  // update widget if idle
+  if (focusState === 'idle') {
+    updateFocusWidget();
+    updateFocusChip();
+  }
+}
+
+function focusSoundToggle() {
+  focusSettings.sound = !focusSettings.sound;
+  saveFocusSettings();
+  var btn = document.getElementById('focus-sound-toggle');
+  if (btn) btn.classList.toggle('on', focusSettings.sound);
+}
+
+// ── WIDGET OPEN/CLOSE ────────────────────────────────────
+function openFocusWidget() {
+  var chip = document.getElementById('focus-chip');
+  var widget = document.getElementById('focus-widget');
+  if (chip) chip.style.display = 'none';
+  if (widget) widget.classList.add('open');
+  updateFocusWidget();
+  initFocusDrag();
+}
+
+function minimiseFocusWidget() {
+  var chip = document.getElementById('focus-chip');
+  var widget = document.getElementById('focus-widget');
+  if (widget) widget.classList.remove('open');
+  if (chip) chip.style.display = 'flex';
+  updateFocusChip();
+}
+
+function closeFocusWidget() {
+  // abandon current session — not logged
+  if (focusTick) { clearInterval(focusTick); focusTick = null; }
+  focusState = 'idle';
+  focusElapsed = 0;
+  focusPauses = 0;
+  var chip = document.getElementById('focus-chip');
+  var widget = document.getElementById('focus-widget');
+  if (widget) widget.classList.remove('open');
+  if (chip) chip.style.display = 'none';
+}
+
+function showFocusTimer() {
+  loadFocusSettings();
+  var chip = document.getElementById('focus-chip');
+  var widget = document.getElementById('focus-widget');
+  if (widget && widget.classList.contains('open')) {
+    // already open — do nothing
+  } else {
+    if (chip) chip.style.display = 'flex';
+  }
+  updateFocusChip();
+  updateFocusWidget();
+  // update settings UI
+  var durEl = document.getElementById('focus-duration-val');
+  if (durEl) durEl.textContent = focusSettings.duration;
+  var sndBtn = document.getElementById('focus-sound-toggle');
+  if (sndBtn) sndBtn.classList.toggle('on', focusSettings.sound);
+}
+
+// ── TIMER CONTROLS ───────────────────────────────────────
+function focusStart() {
+  focusState = 'running';
+  focusElapsed = 0;
+  focusPauses = 0;
+  focusStartedAt = Date.now();
+  focusTick = setInterval(focusTick_fn, 1000);
+  updateFocusWidget();
+  updateFocusChip();
+}
+
+function focusPause() {
+  if (focusState !== 'running') return;
+  focusState = 'paused';
+  focusPauses++;
+  if (focusTick) { clearInterval(focusTick); focusTick = null; }
+  updateFocusWidget();
+  updateFocusChip();
+}
+
+function focusResume() {
+  if (focusState !== 'paused') return;
+  focusState = 'running';
+  focusTick = setInterval(focusTick_fn, 1000);
+  updateFocusWidget();
+  updateFocusChip();
+}
+
+function focusStop() {
+  // Log session with actual elapsed time
+  if (focusTick) { clearInterval(focusTick); focusTick = null; }
+  var actualMins = Math.round(focusElapsed / 60);
+  if (actualMins > 0) {
+    logFocusSession(actualMins, focusPauses, false);
+  }
+  focusState = 'idle';
+  focusElapsed = 0;
+  focusPauses = 0;
+  updateFocusWidget();
+  updateFocusChip();
+}
+
+function focusNextSession() {
+  focusState = 'idle';
+  focusElapsed = 0;
+  focusPauses = 0;
+  updateFocusWidget();
+  updateFocusChip();
+}
+
+function focusTick_fn() {
+  if (focusState !== 'running') return;
+  focusElapsed++;
+  var totalSecs = focusSettings.duration * 60;
+  if (focusElapsed >= totalSecs) {
+    // Session complete
+    clearInterval(focusTick);
+    focusTick = null;
+    focusElapsed = totalSecs;
+    focusState = 'done';
+    logFocusSession(focusSettings.duration, focusPauses, true);
+    if (focusSettings.sound) playFocusSound();
+    updateFocusWidget();
+    updateFocusChip();
+    return;
+  }
+  updateFocusWidget();
+  updateFocusChip();
+}
+
+// ── LOGGING ──────────────────────────────────────────────
+function logFocusSession(actualMins, pauses, completed) {
+  var today = new Date().toISOString().slice(0,10);
+  var session = {
+    id: 'sess-'+Date.now(),
+    date: today,
+    startedAt: focusStartedAt,
+    actualMins: actualMins,
+    pauses: pauses,
+    completed: completed
+  };
+  focusTodaySessions.push(session);
+  // Save locally
+  try {
+    var all = JSON.parse(localStorage.getItem('focus-today-sessions')||'[]');
+    // keep only last 90 days
+    var cutoff = Date.now() - 90*86400000;
+    all = all.filter(function(s){ return s.startedAt > cutoff; });
+    all.push(session);
+    localStorage.setItem('focus-today-sessions', JSON.stringify(all));
+  } catch(e) {}
+  // Save to Firebase silently
+  if (currentUser) {
+    var url = 'https://tasks-aec3a-default-rtdb.firebaseio.com/users/'+currentUser.uid+'/focusSessions/'+session.id+'.json?auth='+currentUser.idToken;
+    fetch(url, { method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify(session) }).catch(function(){});
+  }
+}
+
+// ── SOUND ────────────────────────────────────────────────
+function playFocusSound() {
+  try {
+    var ctx = new (window.AudioContext || window.webkitAudioContext)();
+    var osc = ctx.createOscillator();
+    var gain = ctx.createGain();
+    osc.connect(gain); gain.connect(ctx.destination);
+    osc.frequency.value = 880;
+    osc.type = 'sine';
+    gain.gain.setValueAtTime(0.3, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 1.2);
+    osc.start(ctx.currentTime);
+    osc.stop(ctx.currentTime + 1.2);
+  } catch(e) {}
+}
+
+// ── RENDER ───────────────────────────────────────────────
+function fmtSecs(secs) {
+  var m = Math.floor(secs/60);
+  var s = secs % 60;
+  return (m<10?'0':'')+m+':'+(s<10?'0':'')+s;
+}
+
+function focusTotalMinsToday() {
+  return focusTodaySessions.reduce(function(a,s){ return a+s.actualMins; }, 0);
+}
+
+function updateFocusWidget() {
+  var widget = document.getElementById('focus-widget');
+  if (!widget || !widget.classList.contains('open')) return;
+
+  var totalSecs = focusSettings.duration * 60;
+  var remaining = totalSecs - focusElapsed;
+  var progress = focusElapsed / totalSecs;
+  var offset = CIRCUMFERENCE * (1 - progress);
+
+  // Ring
+  var ring = document.getElementById('fw-ring-fg');
+  var timeEl = document.getElementById('fw-time');
+  var subEl = document.getElementById('fw-time-sub');
+  var lblEl = document.getElementById('fw-lbl');
+  var dotEl = document.getElementById('fw-dot');
+  var titleEl = document.getElementById('fw-title-text');
+
+  if (ring) {
+    ring.style.strokeDashoffset = focusState==='done' ? 0 : offset;
+    ring.style.stroke = focusState==='running' ? 'var(--accent)'
+                      : focusState==='paused'  ? 'var(--amber)'
+                      : focusState==='done'    ? 'var(--green)'
+                      : 'var(--faint)';
+  }
+  if (timeEl) {
+    timeEl.className = 'fw-time ' + focusState;
+    timeEl.textContent = focusState==='done' ? '✓' : fmtSecs(remaining);
+  }
+  if (subEl) {
+    subEl.textContent = focusState==='idle'    ? 'ready'
+                      : focusState==='running' ? 'session '+(focusTodaySessions.length+1)
+                      : focusState==='paused'  ? 'paused'
+                      : fmtSecs(focusSettings.duration*60)+' completed';
+  }
+  if (lblEl) {
+    lblEl.textContent = focusState==='idle'    ? "Start when you're ready"
+                      : focusState==='running' ? 'Keep going 🔥'
+                      : focusState==='paused'  ? '⏸ Disrupted?'
+                      : 'Nice work 👏';
+    lblEl.style.color = focusState==='paused' ? 'var(--amber)'
+                      : focusState==='done'   ? 'var(--green)'
+                      : '';
+  }
+  if (dotEl) { dotEl.className = 'fw-dot ' + focusState; }
+  if (titleEl) { titleEl.textContent = focusState==='done' ? 'Session Done!' : 'Focus Timer'; }
+
+  // Session dots
+  var dotsEl = document.getElementById('fw-dots');
+  if (dotsEl) {
+    var completed = focusTodaySessions.length;
+    var showDots = focusState==='running'||focusState==='paused' ? completed+1 : completed;
+    showDots = Math.max(4, showDots+1);
+    var html = '';
+    for (var i=0; i<showDots; i++) {
+      if (i < completed) html += '<span class="fw-dot-session done"></span>';
+      else if (i === completed && (focusState==='running'||focusState==='paused')) html += '<span class="fw-dot-session current"></span>';
+      else html += '<span class="fw-dot-session"></span>';
+    }
+    dotsEl.innerHTML = html;
+  }
+
+  // Buttons
+  var btnsEl = document.getElementById('fw-btns');
+  if (btnsEl) {
+    if (focusState === 'idle') {
+      btnsEl.innerHTML = '<button class="fw-btn fw-btn-primary" onclick="focusStart()">'
+        +'<svg width="10" height="10" viewBox="0 0 10 10" fill="none"><path d="M2.5 1.5l6 3.5-6 3.5V1.5z" fill="currentColor"/></svg>'
+        +'Start Session</button>';
+    } else if (focusState === 'running') {
+      btnsEl.innerHTML = '<button class="fw-btn fw-btn-secondary" onclick="focusPause()">'
+        +'<svg width="10" height="10" viewBox="0 0 10 10" fill="none"><rect x="2" y="1.5" width="2.5" height="7" rx=".8" fill="currentColor"/><rect x="5.5" y="1.5" width="2.5" height="7" rx=".8" fill="currentColor"/></svg>'
+        +'Pause</button>'
+        +'<button class="fw-btn fw-btn-danger" onclick="focusStop()">'
+        +'<svg width="10" height="10" viewBox="0 0 10 10" fill="none"><rect x="2" y="2" width="6" height="6" rx="1.2" fill="currentColor"/></svg>'
+        +'Stop</button>';
+    } else if (focusState === 'paused') {
+      btnsEl.innerHTML = '<button class="fw-btn fw-btn-primary" onclick="focusResume()">'
+        +'<svg width="10" height="10" viewBox="0 0 10 10" fill="none"><path d="M2.5 1.5l6 3.5-6 3.5V1.5z" fill="currentColor"/></svg>'
+        +'Resume</button>'
+        +'<button class="fw-btn fw-btn-danger" onclick="focusStop()">'
+        +'<svg width="10" height="10" viewBox="0 0 10 10" fill="none"><rect x="2" y="2" width="6" height="6" rx="1.2" fill="currentColor"/></svg>'
+        +'Stop</button>';
+    } else if (focusState === 'done') {
+      btnsEl.innerHTML = '<button class="fw-btn fw-btn-primary" onclick="focusNextSession()">Next Session →</button>';
+    }
+  }
+
+  // Footer stats
+  var sc = document.getElementById('fw-sessions-count');
+  var ft = document.getElementById('fw-focus-time');
+  if (sc) sc.textContent = focusTodaySessions.length;
+  if (ft) ft.textContent = focusTotalMinsToday()+'m';
+}
+
+function updateFocusChip() {
+  var chip = document.getElementById('focus-chip');
+  if (!chip) return;
+  var totalSecs = focusSettings.duration * 60;
+  var progress = focusElapsed / totalSecs;
+  var offset = 82 * (1 - progress);
+  var arcFg = document.getElementById('chip-arc-fg');
+  var arcTime = document.getElementById('chip-arc-time');
+  var timeBig = document.getElementById('chip-time-big');
+  var meta = document.getElementById('chip-meta');
+  var statusDot = document.getElementById('chip-status-dot');
+  var remaining = totalSecs - focusElapsed;
+
+  if (arcFg) {
+    arcFg.style.strokeDashoffset = focusState==='done' ? 0 : offset;
+    arcFg.style.stroke = focusState==='running' ? '#6366f1'
+                       : focusState==='paused'  ? '#fbbf24'
+                       : focusState==='done'    ? '#34d399'
+                       : 'rgba(255,255,255,.15)';
+  }
+  if (arcTime) {
+    arcTime.textContent = focusState==='running' ? Math.round(progress*100)+'%'
+                        : focusState==='paused'  ? '⏸'
+                        : focusState==='done'    ? '✓'
+                        : '—';
+  }
+  if (timeBig) {
+    timeBig.className = 'chip-time-big ' + (focusState==='idle'?'idle':focusState==='paused'?'paused':'');
+    timeBig.textContent = focusState==='idle' ? '00:00'
+                        : focusState==='done' ? 'Done!'
+                        : fmtSecs(remaining);
+  }
+  if (meta) {
+    var s = focusTodaySessions.length;
+    meta.innerHTML = focusState==='idle'    ? 'tap to open'
+                   : focusState==='running' ? '🍅 <span class="hi">'+s+'</span> · session '+(s+1)
+                   : focusState==='paused'  ? 'paused'
+                   : '🍅 <span class="hi">'+s+'</span> done';
+  }
+  if (statusDot) {
+    statusDot.className = 'chip-status-dot '+(focusState==='running'?'running':focusState==='paused'?'paused':'idle');
+  }
+  // chip glow class
+  chip.className = 'focus-chip'+(focusState==='running'?' running':'');
+}
+
+// ── DRAG ─────────────────────────────────────────────────
+function initFocusDrag() {
+  var widget = document.getElementById('focus-widget');
+  var header = document.getElementById('fw-header');
+  if (!widget || !header || header._dragInit) return;
+  header._dragInit = true;
+  var startX, startY, startLeft, startBottom;
+  header.addEventListener('mousedown', function(e) {
+    if (e.target.closest('button')) return;
+    startX = e.clientX; startY = e.clientY;
+    var rect = widget.getBoundingClientRect();
+    startLeft = rect.left;
+    startBottom = window.innerHeight - rect.bottom;
+    widget.style.right = 'auto';
+    widget.style.bottom = startBottom+'px';
+    widget.style.left = startLeft+'px';
+    function onMove(e) {
+      var dx = e.clientX - startX;
+      var dy = e.clientY - startY;
+      widget.style.left = Math.max(0, Math.min(window.innerWidth-244, startLeft+dx))+'px';
+      widget.style.bottom = Math.max(0, Math.min(window.innerHeight-400, startBottom-dy))+'px';
+    }
+    function onUp() {
+      document.removeEventListener('mousemove', onMove);
+      document.removeEventListener('mouseup', onUp);
+    }
+    document.addEventListener('mousemove', onMove);
+    document.addEventListener('mouseup', onUp);
+  });
+}
 
 // ── TOPBAR STATE ─────────────────────────────────────────
 function updateTopbar() {
