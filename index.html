@@ -521,8 +521,9 @@ html.dark .board-scroll::-webkit-scrollbar-thumb:hover{background:#6a6a8a}
 
 /* ── FOCUS TIMER ── */
 /* Collapsed chip */
-.focus-chip{position:fixed;bottom:24px;right:24px;z-index:200;display:flex;align-items:center;gap:10px;background:#1a1a2e;border-radius:14px;padding:10px 14px;cursor:pointer;box-shadow:0 4px 20px rgba(0,0,0,.25),0 1px 4px rgba(0,0,0,.15);transition:all .2s;min-width:148px;user-select:none}
-html.dark .focus-chip{background:#12121c}
+.focus-chip{position:fixed;bottom:24px;right:24px;z-index:200;display:flex;align-items:center;gap:10px;background:#1a1a2e;border-radius:14px;padding:10px 14px;cursor:pointer;transition:all .2s;min-width:148px;user-select:none;border:1.5px solid rgba(99,102,241,.5);box-shadow:0 4px 20px rgba(0,0,0,.2)}
+html:not(.dark) .focus-chip{background:#1a1a2e;border-color:rgba(99,102,241,.5);box-shadow:0 4px 24px rgba(30,30,58,.5)}
+html.dark .focus-chip{background:#2d2b55;border-color:rgba(139,132,255,.8);box-shadow:0 4px 24px rgba(99,102,241,.35),0 0 0 1px rgba(139,132,255,.2)}
 .focus-chip:hover{transform:translateY(-2px);box-shadow:0 8px 28px rgba(0,0,0,.3)}
 .focus-chip.running::before{content:'';position:absolute;inset:0;background:radial-gradient(circle at 20% 50%,rgba(99,102,241,.15) 0%,transparent 70%);pointer-events:none;border-radius:14px}
 .chip-arc-wrap{position:relative;width:34px;height:34px;flex-shrink:0}
@@ -625,6 +626,11 @@ html.dark .focus-widget{box-shadow:0 12px 40px rgba(0,0,0,.4),0 2px 8px rgba(0,0
 .toggle-switch.on{background:var(--accent)}
 .toggle-switch::after{content:'';position:absolute;width:14px;height:14px;background:#fff;border-radius:50%;top:3px;left:3px;transition:transform .2s}
 .toggle-switch.on::after{transform:translateX(16px)}
+/* toggle alias used in focus settings */
+.toggle{width:42px;height:24px;background:var(--border2);border-radius:100px;position:relative;cursor:pointer;transition:background .2s;border:none;flex-shrink:0}
+.toggle.on{background:var(--accent)}
+.toggle::after{content:'';position:absolute;top:3px;left:3px;width:18px;height:18px;background:#fff;border-radius:50%;transition:left .2s;box-shadow:0 1px 4px rgba(0,0,0,.2)}
+.toggle.on::after{left:21px}
 .recur-options{background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:.85rem;margin-top:6px;display:none;flex-direction:column;gap:10px}
 .recur-options.open{display:flex}
 .recur-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
@@ -739,6 +745,10 @@ html.dark .loading{background:#0f0f14}
     <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><rect x="1" y="1" width="10" height="10" rx="1.5" stroke="currentColor" stroke-width="1.5"/><path d="M4 6h4M6 4v4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
     Note
   </button>
+  <button class="topbar-add-note" id="topbar-focus-btn" onclick="openFocusWidget()" title="Focus Timer">
+    <svg width="13" height="13" viewBox="0 0 13 13" fill="none"><circle cx="6.5" cy="6.5" r="5" stroke="currentColor" stroke-width="1.4"/><path d="M6.5 3.5v3l2 1.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    Focus
+  </button>
   <button class="topbar-add" id="topbar-task-btn" onclick="openModal()">
     <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M6 1v10M1 6h10" stroke="#fff" stroke-width="2" stroke-linecap="round"/></svg>
     Add
@@ -828,6 +838,10 @@ html.dark .loading{background:#0f0f14}
         <button class="header-btn-secondary" onclick="quickAddNote()">
           <svg width="13" height="13" viewBox="0 0 13 13" fill="none"><rect x="1.5" y="1.5" width="10" height="10" rx="2" stroke="currentColor" stroke-width="1.4"/><path d="M4 6.5h5M6.5 4v5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
           Add Note
+        </button>
+        <button class="header-btn-secondary" id="focus-header-btn" onclick="openFocusWidget()" title="Focus Timer">
+          <svg width="13" height="13" viewBox="0 0 13 13" fill="none"><circle cx="6.5" cy="6.5" r="5" stroke="currentColor" stroke-width="1.4"/><path d="M6.5 3.5v3l2 1.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          Focus
         </button>
         <button class="header-btn-primary" onclick="openModal()">
           <svg width="13" height="13" viewBox="0 0 13 13" fill="none"><path d="M6.5 1v11M1 6.5h11" stroke="#fff" stroke-width="2" stroke-linecap="round"/></svg>
@@ -1019,12 +1033,7 @@ html.dark .loading{background:#0f0f14}
             <div style="font-size:.88rem;font-weight:600">Sound Notification</div>
             <div style="font-family:var(--mono);font-size:.63rem;color:var(--muted);margin-top:2px">Ping when session ends</div>
           </div>
-          <button class="toggle" id="focus-sound-toggle" onclick="focusSoundToggle()"></button>
-        </div>
-        <div style="margin-top:.5rem;text-align:center">
-          <button onclick="openFocusWidget()" style="background:var(--accent-dim);color:var(--accent);border:1px solid rgba(79,70,229,.2);border-radius:9px;padding:.5rem 1.2rem;font-family:var(--sans);font-size:.8rem;font-weight:700;cursor:pointer;transition:opacity .15s" onmouseover="this.style.opacity='.8'" onmouseout="this.style.opacity='1'">
-            Open Focus Timer
-          </button>
+          <button class="toggle on" id="focus-sound-toggle" onclick="focusSoundToggle()"></button>
         </div>
       </div>
     </div>
@@ -2731,7 +2740,8 @@ function toggleSettings() {
     document.getElementById('page-title').textContent = 'All Tasks';
     render();
   } else {
-    renderSettingsPage();
+    loadFocusSettings();
+  renderSettingsPage();
   }
   closeSidebar();
   updateTopbar();
