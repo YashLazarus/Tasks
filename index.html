@@ -1017,7 +1017,6 @@ html.dark .loading{background:#0f0f14}
   <div class="kpanel-body" id="kpanel-body"></div>
   <div class="kpanel-footer">
     <button class="kpanel-edit-btn" id="kpanel-edit-btn" onclick="kpanelEdit()">Edit Task</button>
-    <button class="kpanel-del-btn" id="kpanel-del-btn" onclick="kpanelDelete()">Delete</button>
   </div>
 </div>
 
@@ -3529,9 +3528,20 @@ function switchToList() {
   document.getElementById('board-view-btn').classList.remove('active');
   document.getElementById('list-view-elements').style.display = 'block';
   document.getElementById('board-view').classList.remove('active');
-  // restore summary cards
   var summary = document.querySelector('.summary');
   if (summary) summary.style.display = '';
+  // restore page header buttons
+  var pageHeader = document.querySelector('.page-header .header-actions');
+  if (pageHeader) pageHeader.style.visibility = '';
+  // hide topbar on desktop
+  if (window.innerWidth > 768) {
+    var topbar = document.getElementById('topbar');
+    if (topbar) topbar.style.display = 'none';
+    var leftBtn = document.getElementById('topbar-left-btn');
+    if (leftBtn) leftBtn.style.display = '';
+    var main = document.querySelector('.main');
+    if (main) main.style.paddingTop = '';
+  }
   render();
   updateTopbar();
 }
@@ -3542,9 +3552,21 @@ function switchToBoard() {
   document.getElementById('list-view-btn').classList.remove('active');
   document.getElementById('list-view-elements').style.display = 'none';
   document.getElementById('board-view').classList.add('active');
-  // hide summary cards in board view — not relevant
   var summary = document.querySelector('.summary');
   if (summary) summary.style.display = 'none';
+  // hide page header buttons — topbar has them in board view
+  var pageHeader = document.querySelector('.page-header .header-actions');
+  if (pageHeader) pageHeader.style.visibility = 'hidden';
+  // show topbar on desktop
+  var topbar = document.getElementById('topbar');
+  if (topbar) topbar.style.display = 'flex';
+  // hide hamburger on desktop — not needed
+  var leftBtn = document.getElementById('topbar-left-btn');
+  if (leftBtn && window.innerWidth > 768) leftBtn.style.display = 'none';
+  if (window.innerWidth > 768) {
+    var main = document.querySelector('.main');
+    if (main) main.style.paddingTop = '70px';
+  }
   renderBoardLabelFilters();
   renderKanban();
   updateTopbar();
@@ -3752,16 +3774,20 @@ function makeKCard(t) {
   card.addEventListener('dragstart', function(e){
     kDragTaskId = t.id;
     e.dataTransfer.effectAllowed = 'move';
-    // Set drag image to the card itself for clean ghost
     e.dataTransfer.setDragImage(card, 20, 20);
     setTimeout(function(){ card.classList.add('dragging'); }, 0);
   });
   card.addEventListener('dragend', function(){
     card.classList.remove('dragging');
     kDragTaskId = null;
-    // Clean up all drag state
     document.querySelectorAll('.kcol.drag-over').forEach(function(c){ c.classList.remove('drag-over'); });
     document.querySelectorAll('.drag-placeholder').forEach(function(p){ p.remove(); });
+  });
+  // Click anywhere on card opens side panel
+  card.addEventListener('click', function(e){
+    // don't open if clicking action buttons or expand button
+    if (e.target.closest('.kcard-action-btn') || e.target.closest('.kcard-move-btn')) return;
+    openKPanel(t.id, e);
   });
 
   // Build card HTML
@@ -3775,14 +3801,24 @@ function makeKCard(t) {
     return '<span class="kcard-label" style="background:rgba('+r+','+g+','+b+',.1);color:'+l.color+'">'+escapeHTML(l.name)+'</span>';
   }).join('');
 
+  // Build progress dots
+  var dotsHTML = '';
+  if (hasSubs) {
+    var dots = t.subtasks.map(function(s){
+      return '<span class="progress-dot'+(s.done?' filled':'')+'"></span>';
+    }).join('');
+    dotsHTML = '<div class="progress-dots" style="margin:4px 0 2px">'+dots+'</div>';
+  }
+
   var hasFooter = hasSubs || t.assignee;
   card.innerHTML =
     '<div style="display:flex;align-items:flex-start;gap:5px">'
-      +'<button class="kcard-expand-btn" onclick="openKPanel('+t.id+',event)" title="View details">'
+      +'<button class="kcard-expand-btn" title="View details">'
         +'<svg width="11" height="11" viewBox="0 0 11 11" fill="none"><path d="M3 2l4 3.5L3 9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>'
       +'</button>'
       +'<div style="flex:1;min-width:0">'
         +'<div class="kcard-name'+(doneStatus?' done':'')+'">'+escapeHTML(t.name)+'</div>'
+        +dotsHTML
       +'</div>'
     +'</div>'
     +'<div class="kcard-meta">'
@@ -3983,7 +4019,7 @@ function openKPanel(taskId, e) {
 
   document.getElementById('kpanel-title').textContent = t.name;
   document.getElementById('kpanel-edit-btn').onclick = function(){ closeKPanel(); openModal(taskId); };
-  document.getElementById('kpanel-del-btn').onclick = function(){ closeKPanel(); deleteTask(taskId); };
+  // delete handled via Edit Task modal only
 
   var body = document.getElementById('kpanel-body');
   var status = getStatusById(t.status);
