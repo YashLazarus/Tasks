@@ -2406,9 +2406,10 @@ function checkRecurringTasks() {
       next = nextDueDate(t.recur, next);
     }
 
-    // always keep exactly one future instance
+    // keep exactly one future instance — but only if today's instance already exists
+    var todayExists = tasks.some(function(x){ return x.recur && x.recur.groupId===groupId && x.due===todayStr; });
     var futureExists = tasks.some(function(x){ return x.recur && x.recur.groupId===groupId && x.due > todayStr; });
-    if (!futureExists) {
+    if (!futureExists && todayExists) {
       var latestAll = tasks.filter(function(x){ return x.recur&&x.recur.groupId===groupId; })
         .reduce(function(max,x){ return x.due>max?x.due:max; },'0000-00-00');
       tasks.push({
