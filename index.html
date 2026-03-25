@@ -1671,6 +1671,7 @@ var _confirmButtons = null; // active confirm dialog buttons
 var boardView = false; // true = board view, false = list view
 var kColOrder = []; // column order for kanban
 var kColHidden = {}; // hidden columns { statusId: true }
+var kCardOrder = {}; // within-column card order { statusId: [taskId, ...] }
 var kColManagerOpen = false;
 var kBacklogOpen = false;
 var kDragTaskId = null;
@@ -1930,6 +1931,12 @@ function restoreFromTrash(trashId) {
     restored.updatedAt = Date.now();
     restored.generated = false;
     tasks.push(restored);
+    // insert at top of column
+    var restoredSid = restored.status;
+    if (!kCardOrder[restoredSid]) kCardOrder[restoredSid] = [];
+    kCardOrder[restoredSid] = kCardOrder[restoredSid].filter(function(id){ return String(id) !== String(restored.id); });
+    kCardOrder[restoredSid].unshift(restored.id);
+    saveKanbanPrefs();
     showToast('Task restored');
   } else if (entry.type === 'note') {
     var restoredNote = JSON.parse(JSON.stringify(entry.data));
@@ -3247,6 +3254,12 @@ function saveTask() {
       newTask.recur = Object.assign({groupId:newGid}, recurData);
     }
     tasks.push(newTask);
+    // insert at top of column card order
+    var newStatusId = newTask.status;
+    if (!kCardOrder[newStatusId]) kCardOrder[newStatusId] = [];
+    kCardOrder[newStatusId] = kCardOrder[newStatusId].filter(function(id){ return String(id) !== String(newTask.id); });
+    kCardOrder[newStatusId].unshift(newTask.id);
+    saveKanbanPrefs();
     save(); checkRecurringTasks(); render(); renderSidebarLabels(); closeModal();
     showToast('Task added');
     return;
@@ -3919,9 +3932,19 @@ function initKColOrder() {
       if (kColOrder.indexOf(s.id) < 0) kColOrder.push(s.id);
     });
     kColHidden = saved.colHidden || {};
+    // restore card order, stripping stale task IDs
+    kCardOrder = {};
+    var savedCardOrder = saved.cardOrder || {};
+    var validTaskIds = tasks.map(function(t){ return String(t.id); });
+    Object.keys(savedCardOrder).forEach(function(sid) {
+      kCardOrder[sid] = savedCardOrder[sid].filter(function(tid){
+        return validTaskIds.indexOf(String(tid)) >= 0;
+      });
+    });
   } else {
     kColOrder = active.map(function(s){ return s.id; });
     kColHidden = {};
+    kCardOrder = {};
   }
 }
 
@@ -3929,7 +3952,8 @@ function saveKanbanPrefs() {
   try {
     localStorage.setItem('kanban-prefs', JSON.stringify({
       colOrder: kColOrder,
-      colHidden: kColHidden
+      colHidden: kColHidden,
+      cardOrder: kCardOrder
     }));
   } catch(e) {}
 }
@@ -3954,6 +3978,16 @@ function renderKanban() {
     var status = statuses.find(function(s){ return s.id === sid; });
     if (!status) return;
     var colTasks = allTasks.filter(function(t){ return t.status === sid; });
+    // sort by saved card order, new tasks (not in order) go to top
+    var order = kCardOrder[sid] || [];
+    colTasks.sort(function(a, b) {
+      var ai = order.findIndex(function(id){ return String(id)===String(a.id); });
+      var bi = order.findIndex(function(id){ return String(id)===String(b.id); });
+      if (ai === -1 && bi === -1) return 0;
+      if (ai === -1) return -1;
+      if (bi === -1) return 1;
+      return ai - bi;
+    });
     board.appendChild(makeKCol(status, colTasks));
   });
 
@@ -4042,9 +4076,15 @@ function makeKCol(status, colTasks) {
     col.classList.remove('drag-over');
     document.querySelectorAll('.kcol.col-drop-target').forEach(function(c){ c.classList.remove('col-drop-target'); });
     var ph = body.querySelector('.drag-placeholder');
-    if (ph) ph.remove();
+    // capture position BEFORE removing placeholder
+    var phIndex = -1;
+    if (ph) {
+      var allCards = Array.from(body.querySelectorAll('.kcard'));
+      phIndex = allCards.indexOf(ph);
+      ph.remove();
+    }
     if (kDragTaskId) {
-      dropKTask(status.id);
+      dropKTask(status.id, phIndex);
     } else if (kDragColId && kDragColId !== status.id) {
       // column reorder on drop
       var fromIdx = kColOrder.indexOf(kDragColId);
@@ -4179,13 +4219,35 @@ function kDaysLabel(t) {
 }
 
 // ── DRAG DROP ────────────────────────────────────────────
-function dropKTask(targetStatusId) {
+function dropKTask(targetStatusId, phIndex) {
   if (!kDragTaskId) return;
   var t = tasks.find(function(x){ return x.id === kDragTaskId; });
   if (!t) return;
 
   var targetStatus = statuses.find(function(s){ return s.id === targetStatusId; });
   if (!targetStatus) return;
+
+  // within-column reorder — no status change needed
+  if (t.status === targetStatusId) {
+    var order = kCardOrder[targetStatusId] || [];
+    // rebuild full order for this column from current render
+    var colTaskIds = tasks
+      .filter(function(x){ return x.status === targetStatusId; })
+      .map(function(x){ return x.id; });
+    // start from saved order, append any missing
+    var fullOrder = order.filter(function(id){ return colTaskIds.some(function(tid){ return String(tid)===String(id); }); });
+    colTaskIds.forEach(function(id){ if (!fullOrder.some(function(fid){ return String(fid)===String(id); })) fullOrder.unshift(id); });
+    // remove dragged task from order
+    var dragIdx = fullOrder.findIndex(function(id){ return String(id)===String(kDragTaskId); });
+    if (dragIdx > -1) fullOrder.splice(dragIdx, 1);
+    // insert at drop position
+    var insertAt = phIndex === -1 ? fullOrder.length : Math.max(0, phIndex > dragIdx ? phIndex - 1 : phIndex);
+    fullOrder.splice(insertAt, 0, kDragTaskId);
+    kCardOrder[targetStatusId] = fullOrder;
+    saveKanbanPrefs();
+    renderKanban();
+    return;
+  }
 
   // Check if dragging to Done with incomplete subtasks
   if (targetStatus.name === 'Done') {
@@ -4200,7 +4262,11 @@ function dropKTask(targetStatusId) {
           { label:'Mark Complete', cls:'warning', action:function(){
             var t2 = tasks.find(function(x){ return x.id===capturedId; });
             if (t2) { t2.status=capturedSid; t2.updatedAt=Date.now(); }
-            save(); renderKanban(); render();
+            // insert at top of target column
+            if (!kCardOrder[capturedSid]) kCardOrder[capturedSid] = [];
+            kCardOrder[capturedSid] = kCardOrder[capturedSid].filter(function(id){ return String(id) !== String(capturedId); });
+            kCardOrder[capturedSid].unshift(capturedId);
+            save(); saveKanbanPrefs(); renderKanban(); render();
             if (t2 && t2.recur && t2.recur.groupId) {
               showToast('Only this instance is done — future instances will continue as scheduled');
             } else {
@@ -4214,11 +4280,23 @@ function dropKTask(targetStatusId) {
     }
   }
 
-  // no-op if dropping to same column
-  if (t.status === targetStatusId) { renderKanban(); return; }
+  // cross-column drop — change status, insert at drop position or top
+  var prevStatusId = t.status;
   t.status = targetStatusId;
   t.updatedAt = Date.now();
+
+  // remove from old column order
+  if (kCardOrder[prevStatusId]) {
+    kCardOrder[prevStatusId] = kCardOrder[prevStatusId].filter(function(id){ return String(id) !== String(t.id); });
+  }
+  // insert into target column order at drop position
+  if (!kCardOrder[targetStatusId]) kCardOrder[targetStatusId] = [];
+  kCardOrder[targetStatusId] = kCardOrder[targetStatusId].filter(function(id){ return String(id) !== String(t.id); });
+  var insertPos = phIndex === -1 ? 0 : phIndex;
+  kCardOrder[targetStatusId].splice(insertPos, 0, t.id);
+
   save();
+  saveKanbanPrefs();
   renderKanban();
   render();
   // toast — recurring-specific or generic
