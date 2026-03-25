@@ -1158,6 +1158,10 @@ html.dark .loading{background:#0f0f14}
       </div>
     </div>
     <div class="notes-header">
+      <div class="search-wrap" style="margin-bottom:.75rem">
+        <svg class="search-icon" width="14" height="14" viewBox="0 0 14 14" fill="none"><circle cx="6" cy="6" r="4" stroke="currentColor" stroke-width="1.5"/><path d="M9.5 9.5L12 12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+        <input type="text" id="note-search" placeholder="Search notes..." oninput="renderNotes()">
+      </div>
       <div style="font-size:.85rem;color:var(--muted)" id="notes-count-label"></div>
     </div>
     <div class="notes-grid" id="notes-grid"></div>
@@ -2800,6 +2804,7 @@ function renderSyncSettingsStatus() {
 // ── SETTINGS ────────────────────────────────────────────
 function toggleSettings() {
   showingNotes = false;
+  var ns = document.getElementById('note-search'); if (ns) ns.value = '';
   showingSettings = !showingSettings;
   document.getElementById('dashboard-view').style.display = showingSettings ? 'none' : 'block';
   document.getElementById('settings-view').style.display  = showingSettings ? 'block' : 'none';
@@ -3384,6 +3389,7 @@ function toggleNotes() {
     document.querySelectorAll('.nav-item')[0].classList.add('active');
     currentView = 'all';
     document.getElementById('page-title').textContent = 'All Tasks';
+    var ns = document.getElementById('note-search'); if (ns) ns.value = '';
     render();
   }
   updateTopbar();
@@ -3392,7 +3398,8 @@ function toggleNotes() {
 function renderNotes() {
   var grid = document.getElementById('notes-grid');
   if (!grid) return;
-  var q = document.getElementById('search').value.toLowerCase();
+  var noteSearchEl = document.getElementById('note-search');
+  var q = noteSearchEl ? noteSearchEl.value.toLowerCase() : '';
   var filtered = notes.filter(function(n) {
     if (!q) return true;
     var tempDiv2 = document.createElement('div');
@@ -3504,6 +3511,7 @@ function deleteNote(e, id) {
 function setView(view, el) {
   currentView = view;
   showingNotes = false;
+  var ns = document.getElementById('note-search'); if (ns) ns.value = '';
   if (showingSettings) { showingSettings = false; document.getElementById('settings-nav-btn').classList.remove('active'); }
   document.getElementById('dashboard-view').style.display = 'block';
   document.getElementById('settings-view').style.display  = 'none';
@@ -3636,6 +3644,14 @@ function openDatePickerCard(id) {
 
 function updateDate(id, val) {
   var t = tasks.find(function(x){ return x.id===id; }); if (!t||!val) return;
+  // block past dates for recurring tasks
+  if (t.recur && t.recur.groupId) {
+    var todayStr = padDate(getToday());
+    if (val < todayStr) {
+      showToast('Recurring tasks cannot have a past due date');
+      return;
+    }
+  }
   t.due = val; t.updatedAt = Date.now();
   save(); render();
   if (t.recur && t.recur.groupId) {
@@ -4166,6 +4182,7 @@ function makeKCard(t) {
       +'<button class="kcard-expand-btn" title="View details">'
         +'<svg width="11" height="11" viewBox="0 0 11 11" fill="none"><path d="M3 2l4 3.5L3 9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>'
       +'</button>'
+      +'<span class="priority-dot-'+t.priority+'" style="margin-top:4px;flex-shrink:0"></span>'
       +'<div style="flex:1;min-width:0">'
         +'<div class="kcard-name'+(doneStatus?' done':'')+'">'+escapeHTML(t.name)+'</div>'
         +dotsHTML
@@ -4174,9 +4191,10 @@ function makeKCard(t) {
       +'</div>'
     +'</div>'
     +'<div class="kcard-meta">'
-      +'<span class="kcard-date '+dl.cls+'">'
+      +'<span class="kcard-date '+dl.cls+'" onclick="openKCardDatePicker('+t.id+',event)" title="Click to change date" style="cursor:pointer;position:relative">'
         +'<svg width="9" height="9" viewBox="0 0 11 11" fill="none"><rect x="1" y="2" width="9" height="8" rx="1.5" stroke="currentColor" stroke-width="1.2"/><path d="M3.5 1v2M7.5 1v2M1 5h9" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>'
         +dl.text
+        +'<input type="date" id="kdp-'+t.id+'" value="'+t.due+'" style="position:absolute;top:0;left:0;opacity:0;pointer-events:none;width:1px;height:1px" onchange="updateKCardDate('+t.id+',this.value);event.stopPropagation()">'
       +'</span>'
       +labelsHTML
     +'</div>'
@@ -4216,6 +4234,35 @@ function kDaysLabel(t) {
   if (diff === 0) return { cls:'today', text:'Due today' };
   if (diff === 1) return { cls:'', text:'Tomorrow' };
   return { cls:'', text: dateStr };
+}
+
+// ── KANBAN DATE PICKER ───────────────────────────────────
+function openKCardDatePicker(id, e) {
+  e.stopPropagation();
+  var input = document.getElementById('kdp-'+id); if (!input) return;
+  input.style.pointerEvents = 'auto';
+  try { input.showPicker(); } catch(err) { input.click(); }
+  setTimeout(function(){ input.style.pointerEvents = 'none'; }, 1000);
+}
+
+function updateKCardDate(id, val) {
+  if (!val) return;
+  var t = tasks.find(function(x){ return x.id===id; }); if (!t) return;
+  // block past dates for recurring tasks
+  if (t.recur && t.recur.groupId) {
+    var todayStr = padDate(getToday());
+    if (val < todayStr) {
+      showToast('Recurring tasks cannot have a past due date');
+      return;
+    }
+  }
+  t.due = val; t.updatedAt = Date.now();
+  save(); renderKanban(); render();
+  if (t.recur && t.recur.groupId) {
+    showToast('Due date updated — only this instance affected');
+  } else {
+    showToast('Due date updated');
+  }
 }
 
 // ── DRAG DROP ────────────────────────────────────────────
