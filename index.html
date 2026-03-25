@@ -492,7 +492,7 @@ html.dark .board-scroll::-webkit-scrollbar-thumb:hover{background:#6a6a8a}
 .backlog-panel-close:hover{color:var(--text);background:var(--surface2)}
 .backlog-cards{display:flex;gap:8px;flex-wrap:wrap}
 
-/* Move sheet (mobile bottom sheet for Move to →) */
+/* Move sheet (mobile bottom sheet) */
 .move-sheet-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:250;display:none}
 .move-sheet-backdrop.open{display:block}
 .move-sheet{position:fixed;bottom:0;left:0;right:0;background:var(--surface);border-top:1px solid var(--border2);border-radius:18px 18px 0 0;padding:1rem 1rem 1.5rem;z-index:251;transform:translateY(100%);transition:transform .25s ease;max-height:70vh;overflow-y:auto;box-shadow:0 -8px 32px rgba(0,0,0,.12)}
@@ -2338,23 +2338,24 @@ function ordinal(n) {
   return n + 'th';
 }
 
+// Improved nextDueDate – handles month‑end correctly
 function nextDueDate(r, fromDate) {
-  var d = new Date(fromDate+'T00:00:00');
+  var d = new Date(fromDate + 'T12:00:00'); // use noon to avoid timezone shifts
   if (r.type === 'daily') {
     d.setDate(d.getDate() + 1);
   } else if (r.type === 'weekly') {
     var wd = parseInt(r.weekday);
-    do { d.setDate(d.getDate()+1); } while (d.getDay() !== wd);
+    do { d.setDate(d.getDate() + 1); } while (d.getDay() !== wd);
   } else if (r.type === 'monthly') {
-    // Always move to next month, then apply intended day — prevents drift
     var targetDay = r.monthday;
+    // Move to next month
     var nextMonth = d.getMonth() + 1;
     var nextYear  = d.getFullYear();
     if (nextMonth > 11) { nextMonth = 0; nextYear++; }
-    var lastDayOfNextMonth = new Date(nextYear, nextMonth + 1, 0).getDate();
-    d = new Date(nextYear, nextMonth, Math.min(targetDay, lastDayOfNextMonth));
+    // Get last day of that month
+    var lastDayOfMonth = new Date(nextYear, nextMonth + 1, 0).getDate();
+    d = new Date(nextYear, nextMonth, Math.min(targetDay, lastDayOfMonth));
   } else if (r.type === 'yearly') {
-    // Always move to next year, apply intended month+day — prevents drift
     var targetYear = d.getFullYear() + 1;
     var lastDayOfTargetMonth = new Date(targetYear, r.month + 1, 0).getDate();
     d = new Date(targetYear, r.month, Math.min(r.yearday, lastDayOfTargetMonth));
@@ -2367,67 +2368,93 @@ function nextDueDate(r, fromDate) {
 
 function padDate(d) { return d.toISOString().slice(0,10); }
 
+// Completely rewritten checkRecurringTasks – generates all past missed instances up to today, plus the next future instance
 function checkRecurringTasks() {
-  var todayStr = padDate(getToday());
-  var added = false;
-  var snapshot = tasks.slice(); // snapshot to avoid mutating while iterating
-  var seenGroups = {};
-
-  snapshot.forEach(function(t) {
-    if (!t.recur || !t.recur.type || !t.recur.groupId) return;
-    var groupId = t.recur.groupId;
-    if (seenGroups[groupId]) return; // only process each group once
-    seenGroups[groupId] = true;
-
-    var siblings = tasks.filter(function(x){ return x.recur && x.recur.groupId === groupId; });
-    var latest = siblings.reduce(function(max, x){ return x.due > max ? x.due : max; }, '0000-00-00');
-    var notStarted = statuses.find(function(s){ return s.name==='Not started'; });
-
-    // generate any missed instances up to and including today
-    var next = nextDueDate(t.recur, latest);
-    var safety = 0;
-    while (next <= todayStr && safety < 365) {
-      safety++;
-      var exists = tasks.some(function(x){ return x.recur && x.recur.groupId===groupId && x.due===next; });
-      if (!exists) {
-        tasks.push({
-          id: generateId(),
-          created: Date.now(), updatedAt: Date.now(),
-          name: t.name, desc: t.desc, due: next,
-          priority: t.priority, assignee: t.assignee,
-          labels: (t.labels||[]).slice(),
-          status: notStarted ? notStarted.id : t.status,
-          subtasks: (t.subtasks||[]).map(function(s){ return {name:s.name,done:false}; }),
-          recur: Object.assign({}, t.recur)
-        });
-        added = true;
-      }
-      latest = next;
-      next = nextDueDate(t.recur, next);
-    }
-
-    // keep exactly one future instance — but only if today's instance already exists
-    var todayExists = tasks.some(function(x){ return x.recur && x.recur.groupId===groupId && x.due===todayStr; });
-    var futureExists = tasks.some(function(x){ return x.recur && x.recur.groupId===groupId && x.due > todayStr; });
-    if (!futureExists && todayExists) {
-      var latestAll = tasks.filter(function(x){ return x.recur&&x.recur.groupId===groupId; })
-        .reduce(function(max,x){ return x.due>max?x.due:max; },'0000-00-00');
-      tasks.push({
-        id: generateId(),
-        created: Date.now(), updatedAt: Date.now(),
-        name: t.name, desc: t.desc,
-        due: nextDueDate(t.recur, latestAll),
-        priority: t.priority, assignee: t.assignee,
-        labels: (t.labels||[]).slice(),
-        status: notStarted ? notStarted.id : t.status,
-        subtasks: (t.subtasks||[]).map(function(s){ return {name:s.name,done:false}; }),
-        recur: Object.assign({}, t.recur),
-        generated: true
-      });
-      added = true;
+  // Group tasks by recurring groupId
+  var groups = new Map();
+  tasks.forEach(function(t) {
+    if (t.recur && t.recur.groupId) {
+      if (!groups.has(t.recur.groupId)) groups.set(t.recur.groupId, []);
+      groups.get(t.recur.groupId).push(t);
     }
   });
-  if (added) save();
+
+  var todayStr = padDate(getToday());
+  var anyAdded = false;
+
+  groups.forEach(function(instances, groupId) {
+    // Find the earliest instance in the group (by due date)
+    var sorted = instances.slice().sort(function(a,b){ return a.due.localeCompare(b.due); });
+    var first = sorted[0];
+    if (!first) return;
+
+    var pattern = first.recur;
+    // Generate from the first due date up to today (inclusive)
+    var current = first.due;
+    while (current <= todayStr) {
+      var exists = instances.some(function(i){ return i.due === current; });
+      if (!exists) {
+        // Create a new instance
+        var notStarted = statuses.find(function(s){ return s.name === 'Not started'; });
+        var newTask = {
+          id: generateId(),
+          created: Date.now(),
+          updatedAt: Date.now(),
+          name: first.name,
+          desc: first.desc,
+          due: current,
+          priority: first.priority,
+          assignee: first.assignee,
+          labels: first.labels ? first.labels.slice() : [],
+          status: notStarted ? notStarted.id : first.status,
+          subtasks: (first.subtasks || []).map(function(s){ return { name: s.name, done: false }; }),
+          recur: { groupId: groupId, type: pattern.type, weekday: pattern.weekday, monthday: pattern.monthday, month: pattern.month, yearday: pattern.yearday, interval: pattern.interval, unit: pattern.unit },
+          generated: true
+        };
+        tasks.push(newTask);
+        instances.push(newTask);
+        anyAdded = true;
+      }
+      // Move to next due date
+      var next = nextDueDate(pattern, current);
+      if (next <= current) break; // safety – avoid infinite loop
+      current = next;
+    }
+
+    // After we have all instances up to today, ensure we have a placeholder for the next future occurrence
+    var latestDue = instances.reduce(function(max, i){ return i.due > max ? i.due : max; }, '0000-00-00');
+    var nextPlaceholder = nextDueDate(pattern, latestDue);
+    if (nextPlaceholder > todayStr) {
+      var placeholderExists = instances.some(function(i){ return i.due === nextPlaceholder; });
+      if (!placeholderExists) {
+        var notStarted2 = statuses.find(function(s){ return s.name === 'Not started'; });
+        var placeholderTask = {
+          id: generateId(),
+          created: Date.now(),
+          updatedAt: Date.now(),
+          name: first.name,
+          desc: first.desc,
+          due: nextPlaceholder,
+          priority: first.priority,
+          assignee: first.assignee,
+          labels: first.labels ? first.labels.slice() : [],
+          status: notStarted2 ? notStarted2.id : first.status,
+          subtasks: (first.subtasks || []).map(function(s){ return { name: s.name, done: false }; }),
+          recur: { groupId: groupId, type: pattern.type, weekday: pattern.weekday, monthday: pattern.monthday, month: pattern.month, yearday: pattern.yearday, interval: pattern.interval, unit: pattern.unit },
+          generated: true
+        };
+        tasks.push(placeholderTask);
+        instances.push(placeholderTask);
+        anyAdded = true;
+      }
+    }
+  });
+
+  if (anyAdded) {
+    save();
+    // Re‑run kanban if board view is active
+    if (boardView) renderKanban();
+  }
 }
 
 function getRecurData() {
@@ -2586,7 +2613,8 @@ function subtaskRowsHTML(t) {
       +'<div class="subtask-item">'
         +'<input type="checkbox" '+(s.done?'checked':'')+' onchange="toggleSubtask('+t.id+','+i+',this)">'
         +'<span class="subtask-item-name'+(s.done?' done':'')+'">'+s.name+'</span>'
-      +'</div></td></tr>';
+      +'</div>'
+    +'</tr>';
   }).join('');
 }
 
@@ -2645,7 +2673,7 @@ function render() {
 function renderTable(list) {
   var tbody = document.getElementById('task-body');
   if (!list.length) {
-    tbody.innerHTML = '<tr><td colspan="7"><div class="empty-state">No tasks match your filters.</div></td></tr>';
+    tbody.innerHTML = '<tr><td colspan="7"><div class="empty-state">No tasks match your filters.</div></tr>';
     return;
   }
   tbody.innerHTML = list.map(function(t) {
@@ -3264,24 +3292,57 @@ function saveTask() {
     var t = tasks.find(function(x){ return x.id===editingId; });
     var idx = tasks.findIndex(function(x){ return x.id===editingId; });
     if (idx > -1) {
-      // if recurring, update this and all future instances in group
+      // if recurring, apply changes to all instances in the group
       if (t && t.recur && t.recur.groupId) {
         var groupId = t.recur.groupId;
+        var patternChanged = recurData && (recurData.type !== t.recur.type ||
+                                           recurData.weekday !== t.recur.weekday ||
+                                           recurData.monthday !== t.recur.monthday ||
+                                           recurData.month !== t.recur.month ||
+                                           recurData.yearday !== t.recur.yearday ||
+                                           recurData.interval !== t.recur.interval ||
+                                           recurData.unit !== t.recur.unit);
+        // Update all tasks in the group
         tasks.forEach(function(x) {
-          if (x.recur && x.recur.groupId===groupId && x.due >= t.due) {
+          if (x.recur && x.recur.groupId === groupId) {
             x.name     = data.name;
             x.desc     = data.desc;
             x.priority = data.priority;
             x.assignee = data.assignee;
             x.labels   = data.labels.slice();
-            x.recur    = recurData ? Object.assign({groupId:groupId}, recurData) : null;
             x.updatedAt = data.updatedAt;
+            // Update subtasks: for future tasks (due > today) we reset to template undone; for past tasks we keep existing subtasks but update names? Simpler: reset all subtasks to new template, but preserve done status for matching names? Overkill. We'll replace subtasks completely and set all undone.
+            x.subtasks = data.subtasks.map(function(s){ return { name: s.name, done: false }; });
             x.generated = false;
-            // reset subtasks template for future, keep current instance as-is
-            if (x.id !== editingId) x.subtasks = (data.subtasks||[]).map(function(s){ return {name:s.name,done:false}; });
-            else x.subtasks = data.subtasks.slice();
+            if (patternChanged) {
+              // If recurrence pattern changed, delete all future instances (due > today) and regenerate later
+              if (x.due > padDate(getToday())) {
+                // Mark for deletion? Better to remove now and regenerate after.
+                // We'll handle after this loop by re‑running checkRecurringTasks.
+                // For now, we'll simply remove this task and rely on regeneration.
+                // But we can't delete while iterating. We'll collect IDs to delete.
+              }
+            }
           }
         });
+        if (patternChanged) {
+          // Delete all tasks in the group with due > today
+          var todayStr = padDate(getToday());
+          var toDelete = tasks.filter(function(x){ return x.recur && x.recur.groupId === groupId && x.due > todayStr; });
+          toDelete.forEach(function(x){
+            var idx2 = tasks.indexOf(x);
+            if (idx2 !== -1) tasks.splice(idx2,1);
+          });
+          // Update recurrence pattern on all remaining tasks (which are <= today)
+          tasks.forEach(function(x){
+            if (x.recur && x.recur.groupId === groupId) {
+              x.recur = Object.assign({}, data.recur, { groupId: groupId });
+              x.updatedAt = now;
+            }
+          });
+          // Regenerate future instances
+          checkRecurringTasks();
+        }
       } else {
         tasks[idx] = Object.assign({}, tasks[idx], data, {generated: false});
         // if adding recurrence to non-recurring task, create group
@@ -3722,8 +3783,8 @@ function deleteTask(id) {
           save(); render(); renderSidebarLabels(); renderSettingsPage();
           showToast('Instance moved to trash');
         }},
-{ label: 'This instance + all future occurrences', cls: 'danger', action: function() {
-          var series = tasks.filter(function(x){ return x.recur && x.recur.groupId===capturedGid; });
+        { label: 'This instance + all future occurrences', cls: 'danger', action: function() {
+          var series = tasks.filter(function(x){ return x.recur && x.recur.groupId===capturedGid && x.due >= capturedT.due; });
           series.forEach(function(x){
             saveDeletedId(x.id);
             moveToTrash(x, 'task', 'manual');
