@@ -712,6 +712,13 @@ html.dark .loading{background:#0f0f14}
   .form-grid{grid-template-columns:1fr}
   .bulk-actions{gap:4px}
   .bulk-btn{font-size:.75rem;padding:.35rem .7rem}
+  /* kanban mobile fixes */
+  .board-scroll{height:calc(100vh - 195px);overflow-y:hidden;overflow-x:auto;padding-bottom:0}
+  .board-toolbar{flex-wrap:nowrap;overflow-x:auto;padding-bottom:4px}
+  .board-toolbar::-webkit-scrollbar{display:none}
+  .board-date-filters{flex-shrink:0}
+  .kcol{width:82vw;max-width:300px;max-height:calc(100vh - 260px)}
+  .board{padding-right:16px}
 }
 @media(max-width:420px){
   .summary{grid-template-columns:repeat(2,1fr)}
@@ -2185,7 +2192,28 @@ function loadFromCloud() {
   setSyncStatus('syncing', 'Syncing...');
   // ensure token is valid before fetching
   ensureValidToken().then(function(valid) {
-    if (!valid) { clearCredentials(); showAuthScreen(); return; }
+    if (!valid) {
+      // token refresh failed — fall back to local data, show soft prompt
+      tasks    = localTasks;
+      statuses = localStatuses || JSON.parse(JSON.stringify(DEFAULT_STATUSES));
+      labels   = localLabels;
+      notes    = localNotes;
+      document.getElementById('loading').style.display = 'none';
+      var aw3 = document.getElementById('app-wrapper');
+      if (aw3) aw3.style.display = 'contents';
+      setSyncStatus('error', 'Session expired — tap to sign in again');
+      var syncEl = document.getElementById('sync-status');
+      if (syncEl) {
+        syncEl.style.cursor = 'pointer';
+        syncEl.onclick = function(){ syncEl.onclick=null; syncEl.style.cursor=''; signOut(); };
+      }
+      // suppress cloud saves while token is invalid
+      var _origSaveTimer = saveTimer;
+      clearTimeout(saveTimer);
+      saveTimer = null;
+      init();
+      return;
+    }
     fetch(getFirebaseUrl())
   .then(function(r){
     if (!r.ok) throw new Error('HTTP ' + r.status);
@@ -2264,7 +2292,13 @@ function saveToCloud() {
     if (err.message === 'TOKEN_EXPIRED') {
       // refresh token and retry once
       return refreshAuthToken().then(function(ok) {
-        if (!ok) { clearCredentials(); showAuthScreen(); return; }
+        if (!ok) {
+          // soft failure — don't hard logout, just show error
+          setSyncStatus('error', 'Session expired — tap to sign in again');
+          document.getElementById('sync-status').style.cursor = 'pointer';
+          document.getElementById('sync-status').onclick = function(){ signOut(); };
+          return;
+        }
         return doSave(currentUser.idToken);
       });
     }
