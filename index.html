@@ -713,12 +713,15 @@ html.dark .loading{background:#0f0f14}
   .bulk-actions{gap:4px}
   .bulk-btn{font-size:.75rem;padding:.35rem .7rem}
   /* kanban mobile fixes */
-  .board-scroll{height:calc(100vh - 195px);overflow-y:hidden;overflow-x:auto;padding-bottom:0}
-  .board-toolbar{flex-wrap:nowrap;overflow-x:auto;padding-bottom:4px}
+  .board-view.active{height:calc(100vh - 185px);display:flex;flex-direction:column;overflow:hidden}
+  .board-toolbar{flex-wrap:nowrap;overflow-x:auto;padding-bottom:4px;flex-shrink:0}
   .board-toolbar::-webkit-scrollbar{display:none}
   .board-date-filters{flex-shrink:0}
-  .kcol{width:82vw;max-width:300px;max-height:calc(100vh - 260px)}
-  .board{padding-right:16px}
+  .board-scroll{flex:1;overflow-y:hidden;overflow-x:auto;padding-bottom:0;min-height:0}
+  .board{height:100%;align-items:stretch;padding-right:16px}
+  .kcol{width:82vw;max-width:310px;max-height:100%;flex-shrink:0}
+  .kcol-body{flex:1;overflow-y:auto;min-height:0}
+  .main.board-active{overflow:hidden;min-height:unset;height:calc(100vh - 52px)}
 }
 @media(max-width:420px){
   .summary{grid-template-columns:repeat(2,1fr)}
@@ -2839,6 +2842,7 @@ function renderSyncSettingsStatus() {
 function toggleSettings() {
   showingNotes = false;
   var ns = document.getElementById('note-search'); if (ns) ns.value = '';
+  document.body.style.overflow = '';
   showingSettings = !showingSettings;
   document.getElementById('dashboard-view').style.display = showingSettings ? 'none' : 'block';
   document.getElementById('settings-view').style.display  = showingSettings ? 'block' : 'none';
@@ -3409,6 +3413,7 @@ function quickAddNote() {
 
 function toggleNotes() {
   showingNotes = !showingNotes;
+  document.body.style.overflow = '';
   document.getElementById('dashboard-view').style.display = showingNotes ? 'none' : 'block';
   document.getElementById('settings-view').style.display  = 'none';
   document.getElementById('notes-view').style.display     = showingNotes ? 'block' : 'none';
@@ -3899,6 +3904,10 @@ function switchToList() {
   // restore page header buttons
   var pageHeader = document.querySelector('.page-header .header-actions');
   if (pageHeader) pageHeader.style.visibility = '';
+  // unlock body scroll on mobile
+  document.body.style.overflow = '';
+  var mainEl2 = document.querySelector('.main');
+  if (mainEl2) mainEl2.classList.remove('board-active');
   // hide topbar on desktop
   if (window.innerWidth > 768) {
     var topbar = document.getElementById('topbar');
@@ -3923,6 +3932,12 @@ function switchToBoard() {
   // hide page header buttons — topbar has them in board view
   var pageHeader = document.querySelector('.page-header .header-actions');
   if (pageHeader) pageHeader.style.visibility = 'hidden';
+  // lock body scroll on mobile
+  if (window.innerWidth <= 768) {
+    document.body.style.overflow = 'hidden';
+    var mainEl = document.querySelector('.main');
+    if (mainEl) mainEl.classList.add('board-active');
+  }
   // show topbar on desktop
   var topbar = document.getElementById('topbar');
   if (topbar) topbar.style.display = 'flex';
