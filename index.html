@@ -473,8 +473,8 @@ html.dark .board-scroll::-webkit-scrollbar-thumb:hover{background:#6a6a8a}
 .board-label-chip.active{opacity:1}
 
 /* Column manager popup */
-.kcol-manager{position:absolute;top:calc(100% + 8px);left:0;background:var(--surface);border:1px solid var(--border2);border-radius:13px;padding:.85rem;z-index:100;width:210px;box-shadow:0 8px 32px rgba(0,0,0,.12);display:none}
-.kcol-manager.open{display:block;animation:slideUp .15s ease}
+.kcol-manager{position:absolute;top:calc(100% + 8px);left:0;background:var(--surface);border:1px solid var(--border2);border-radius:13px;padding:.85rem;z-index:100;width:210px;box-shadow:0 8px 32px rgba(0,0,0,.12);display:none;pointer-events:none}
+.kcol-manager.open{display:block;animation:slideUp .15s ease;pointer-events:auto}
 .kcol-manager-title{font-family:var(--mono);font-size:.62rem;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:.6rem}
 .kcol-manager-item{display:flex;align-items:center;gap:8px;padding:.35rem .4rem;border-radius:7px;cursor:pointer;transition:background .1s}
 .kcol-manager-item:hover{background:var(--surface2)}
@@ -713,15 +713,13 @@ html.dark .loading{background:#0f0f14}
   .bulk-actions{gap:4px}
   .bulk-btn{font-size:.75rem;padding:.35rem .7rem}
   /* kanban mobile fixes */
-  .board-view.active{height:calc(100vh - 185px);display:flex;flex-direction:column;overflow:hidden}
-  .board-toolbar{flex-wrap:nowrap;overflow-x:auto;padding-bottom:4px;flex-shrink:0}
-  .board-toolbar::-webkit-scrollbar{display:none}
-  .board-date-filters{flex-shrink:0}
-  .board-scroll{flex:1;overflow-y:hidden;overflow-x:auto;padding-bottom:0;min-height:0}
-  .board{height:100%;align-items:stretch;padding-right:16px}
-  .kcol{width:82vw;max-width:310px;max-height:100%;flex-shrink:0}
-  .kcol-body{flex:1;overflow-y:auto;min-height:0}
-  .main.board-active{overflow:hidden;min-height:unset;height:calc(100vh - 52px)}
+  .board-view.active{display:flex;flex-direction:column}
+  .board-toolbar{flex-shrink:0}
+  .board-toolbar > div:first-child{flex-wrap:wrap;gap:6px}
+  .board-scroll{overflow-x:auto;overflow-y:hidden;padding-bottom:8px}
+  .board-scroll::-webkit-scrollbar{display:none}
+  .kcol{width:85vw;max-width:85vw;max-height:calc(100vh - 280px);flex-shrink:0}
+  .kcol-body{overflow-y:auto}
 }
 @media(max-width:420px){
   .summary{grid-template-columns:repeat(2,1fr)}
@@ -2146,6 +2144,7 @@ function focusSync() {
         renderSettingsPage();
         updateNotesCount();
         if (boardView) { initKColOrder(); renderBoardLabelFilters(); }
+        fetchFocusSessions();
       } else {
         setSyncStatus('synced', 'Synced');
       }
@@ -2256,6 +2255,7 @@ function loadFromCloud() {
     if (aw) aw.style.display = 'contents';
     setSyncStatus('synced', 'Synced');
     init();
+    fetchFocusSessions();
   })
   .catch(function() {
     // network error — fall back to local data, work offline
@@ -3904,10 +3904,6 @@ function switchToList() {
   // restore page header buttons
   var pageHeader = document.querySelector('.page-header .header-actions');
   if (pageHeader) pageHeader.style.visibility = '';
-  // unlock body scroll on mobile
-  document.body.style.overflow = '';
-  var mainEl2 = document.querySelector('.main');
-  if (mainEl2) mainEl2.classList.remove('board-active');
   // hide topbar on desktop
   if (window.innerWidth > 768) {
     var topbar = document.getElementById('topbar');
@@ -3932,12 +3928,6 @@ function switchToBoard() {
   // hide page header buttons — topbar has them in board view
   var pageHeader = document.querySelector('.page-header .header-actions');
   if (pageHeader) pageHeader.style.visibility = 'hidden';
-  // lock body scroll on mobile
-  if (window.innerWidth <= 768) {
-    document.body.style.overflow = 'hidden';
-    var mainEl = document.querySelector('.main');
-    if (mainEl) mainEl.classList.add('board-active');
-  }
   // show topbar on desktop
   var topbar = document.getElementById('topbar');
   if (topbar) topbar.style.display = 'flex';
@@ -4648,7 +4638,8 @@ var focusElapsed  = 0;         // seconds elapsed this session
 var focusPauses   = 0;         // pauses this session
 var focusStartedAt = null;     // timestamp when session started
 var focusTick     = null;      // interval ref
-var focusTodaySessions = [];   // sessions logged today
+var focusTodaySessions = [];   // sessions logged today (for widget display)
+var allFocusSessions   = [];   // all sessions across all days (for analytics + sync)
 var focusSettings = { duration: 25, sound: true };
 var focusWidgetPos = null;     // { x, y } saved position
 var CIRCUMFERENCE = 289;       // 2 * pi * 46
@@ -4660,6 +4651,10 @@ function loadFocusSettings() {
     var d = localStorage.getItem('focus-today-sessions');
     if (d) {
       var arr = JSON.parse(d);
+      // keep only last 90 days
+      var cutoff = Date.now() - 90*86400000;
+      arr = arr.filter(function(s){ return (s.startedAt||0) > cutoff; });
+      allFocusSessions = arr;
       var today = new Date().toISOString().slice(0,10);
       focusTodaySessions = arr.filter(function(s){ return s.date === today; });
     }
@@ -4819,6 +4814,7 @@ function logFocusSession(actualMins, pauses, completed) {
     completed: completed
   };
   focusTodaySessions.push(session);
+  allFocusSessions.push(session);
   // Save locally
   try {
     var all = JSON.parse(localStorage.getItem('focus-today-sessions')||'[]');
@@ -4828,14 +4824,50 @@ function logFocusSession(actualMins, pauses, completed) {
     all.push(session);
     localStorage.setItem('focus-today-sessions', JSON.stringify(all));
   } catch(e) {}
-  // Save to Firebase silently
+  // Save to Firebase silently with valid token
   if (currentUser) {
-    var url = 'https://tasks-aec3a-default-rtdb.firebaseio.com/users/'+currentUser.uid+'/focusSessions/'+session.id+'.json?auth='+currentUser.idToken;
-    fetch(url, { method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify(session) }).catch(function(){});
+    ensureValidToken().then(function(valid) {
+      if (!valid) return;
+      var url = 'https://tasks-aec3a-default-rtdb.firebaseio.com/users/'+currentUser.uid+'/focusSessions/'+session.id+'.json?auth='+currentUser.idToken;
+      fetch(url, { method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify(session) }).catch(function(){});
+    });
   }
 }
 
-// ── SOUND ────────────────────────────────────────────────
+// ── FOCUS SESSION SYNC ───────────────────────────────────
+function fetchFocusSessions() {
+  if (!currentUser) return Promise.resolve();
+  return ensureValidToken().then(function(valid) {
+    if (!valid) return;
+    var url = FIREBASE_DB_URL + '/users/' + currentUser.uid + '/focusSessions.json?auth=' + currentUser.idToken;
+    return fetch(url)
+      .then(function(r){ return r.json(); })
+      .then(function(data) {
+        if (!data || typeof data !== 'object') return;
+        // data is { sessionId: sessionObj, ... }
+        var cloudSessions = Object.keys(data).map(function(k){ return data[k]; }).filter(Boolean);
+        // merge with localStorage — deduplicate by id
+        try {
+          var local = JSON.parse(localStorage.getItem('focus-today-sessions')||'[]');
+          var merged = {};
+          local.forEach(function(s){ if(s&&s.id) merged[s.id] = s; });
+          cloudSessions.forEach(function(s){ if(s&&s.id) merged[s.id] = s; });
+          var cutoff = Date.now() - 90*86400000;
+          var all = Object.keys(merged).map(function(k){ return merged[k]; })
+            .filter(function(s){ return (s.startedAt||0) > cutoff; })
+            .sort(function(a,b){ return (a.startedAt||0)-(b.startedAt||0); });
+          localStorage.setItem('focus-today-sessions', JSON.stringify(all));
+          allFocusSessions = all;
+          var today = new Date().toISOString().slice(0,10);
+          focusTodaySessions = all.filter(function(s){ return s.date === today; });
+          // update widget stats if open
+          updateFocusWidget();
+          updateFocusChip();
+        } catch(e) {}
+      })
+      .catch(function(){});
+  });
+}
 function playFocusSound() {
   try {
     var ctx = new (window.AudioContext || window.webkitAudioContext)();
