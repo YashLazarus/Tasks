@@ -2417,9 +2417,13 @@ function checkRecurringTasks() {
     // clean up extras — keep only the nearest future instance, backfill generated:true
     if (futureInstances.length >= 1) {
       futureInstances.sort(function(a,b){ return a.due < b.due ? -1 : 1; });
-      // backfill generated:true on the nearest one
-      if (!futureInstances[0].generated) {
-        futureInstances[0].generated = true;
+      // find the earliest due date in the entire group (including past instances)
+      var allSiblings = tasks.filter(function(x){ return x.recur && x.recur.groupId === groupId; });
+      var earliestDue = allSiblings.reduce(function(min,x){ return x.due < min ? x.due : min; }, '9999-99-99');
+      // backfill generated:true on nearest future instance — but NOT if it's the original (earliest) task
+      var nearest = futureInstances[0];
+      if (!nearest.generated && nearest.due !== earliestDue) {
+        nearest.generated = true;
         added = true;
       }
       // trash the rest
@@ -2467,8 +2471,33 @@ function getRecurData() {
 }
 
 // ── INIT ────────────────────────────────────────────────
+function migrateRecurringGenerated() {
+  // One-time fix: clear generated:true from the earliest instance of each recurring group
+  // These were incorrectly stamped by a previous bug
+  var seenGroups = {};
+  var changed = false;
+  // find earliest instance per group
+  tasks.forEach(function(t) {
+    if (!t.recur || !t.recur.groupId) return;
+    var gid = t.recur.groupId;
+    if (!seenGroups[gid] || t.due < seenGroups[gid].due) {
+      seenGroups[gid] = t;
+    }
+  });
+  // clear generated:true from earliest instances
+  Object.keys(seenGroups).forEach(function(gid) {
+    var t = seenGroups[gid];
+    if (t.generated === true) {
+      t.generated = false;
+      changed = true;
+    }
+  });
+  if (changed) save();
+}
+
 function init() {
   patchFixedStatuses();
+  migrateRecurringGenerated();
   purgeStaleTrashedItems();
   autoArchiveCompletedTasks();
   checkRecurringTasks();
