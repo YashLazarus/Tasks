@@ -1798,7 +1798,32 @@ function mergeTasks(localTasks, cloudTasks) {
     if (isDeleted(id)) delete merged[id];
   });
 
-  return Object.keys(merged).map(function(id){ return merged[id]; });
+  var result = Object.keys(merged).map(function(id){ return merged[id]; });
+
+  // deduplicate recurring instances — keep only one per groupId+due (newest by updatedAt)
+  var recurSeen = {}; // key: groupId+'|'+due → task
+  result.forEach(function(t) {
+    if (!t.recur || !t.recur.groupId) return;
+    var key = t.recur.groupId + '|' + t.due;
+    if (!recurSeen[key]) {
+      recurSeen[key] = t;
+    } else {
+      // keep the one with higher updatedAt, or prefer non-generated
+      var existing = recurSeen[key];
+      var tTs = t.updatedAt || t.created || 0;
+      var eTs = existing.updatedAt || existing.created || 0;
+      if (!t.generated && existing.generated) {
+        recurSeen[key] = t; // prefer non-generated (user-created)
+      } else if (tTs > eTs && !(existing.generated === false && t.generated)) {
+        recurSeen[key] = t;
+      }
+    }
+  });
+
+  // rebuild result — keep non-recurring tasks + deduplicated recurring tasks
+  var nonRecur = result.filter(function(t){ return !t.recur || !t.recur.groupId; });
+  var dedupedRecur = Object.keys(recurSeen).map(function(k){ return recurSeen[k]; });
+  return nonRecur.concat(dedupedRecur);
 }
 
 function mergeNotes(localNotes, cloudNotes) {
@@ -2369,9 +2394,48 @@ function nextDueDate(r, fromDate) {
 
 function padDate(d) { return d.toISOString().slice(0,10); }
 
+var _recurTimer = null;
 function checkRecurringTasks() {
+  clearTimeout(_recurTimer);
+  _recurTimer = setTimeout(_doCheckRecurringTasks, 300);
+}
+
+function _doCheckRecurringTasks() {
   var todayStr = padDate(getToday());
   var added = false;
+
+  // ── STEP 0: deduplicate recurring instances by groupId+due (safety net for sync race) ──
+  var recurSeen2 = {};
+  var toTrash = [];
+  tasks.forEach(function(t) {
+    if (!t.recur || !t.recur.groupId) return;
+    var key = t.recur.groupId + '|' + t.due;
+    if (!recurSeen2[key]) {
+      recurSeen2[key] = t;
+    } else {
+      // keep non-generated over generated, else keep newer
+      var existing = recurSeen2[key];
+      var tTs = t.updatedAt || t.created || 0;
+      var eTs = existing.updatedAt || existing.created || 0;
+      var keepT = (!t.generated && existing.generated) || (tTs > eTs && !(existing.generated === false && t.generated === true));
+      if (keepT) {
+        toTrash.push(existing);
+        recurSeen2[key] = t;
+      } else {
+        toTrash.push(t);
+      }
+    }
+  });
+  if (toTrash.length) {
+    toTrash.forEach(function(x) {
+      saveDeletedId(x.id);
+      moveToTrash(x, 'task', 'auto');
+    });
+    tasks = tasks.filter(function(t) {
+      return !toTrash.some(function(x){ return x.id === t.id; });
+    });
+    added = true;
+  }
   var snapshot = tasks.slice(); // snapshot to avoid mutating while iterating
   var seenGroups = {};
 
@@ -2456,7 +2520,7 @@ function checkRecurringTasks() {
       added = true;
     }
   });
-  if (added) save();
+  if (added) { save(); render(); }
 }
 
 function getRecurData() {
