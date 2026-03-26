@@ -1808,15 +1808,18 @@ function mergeTasks(localTasks, cloudTasks) {
     if (!recurSeen[key]) {
       recurSeen[key] = t;
     } else {
-      // keep the one with higher updatedAt, or prefer non-generated
+      // keep the one with higher updatedAt — Done status always wins
       var existing = recurSeen[key];
       var tTs = t.updatedAt || t.created || 0;
       var eTs = existing.updatedAt || existing.created || 0;
-      if (!t.generated && existing.generated) {
-        recurSeen[key] = t; // prefer non-generated (user-created)
-      } else if (tTs > eTs && !(existing.generated === false && t.generated)) {
-        recurSeen[key] = t;
+      var tDone = isDoneStatus(t.status);
+      var eDone = isDoneStatus(existing.status);
+      if (tDone && !eDone) {
+        recurSeen[key] = t; // done always beats not-done
+      } else if (!eDone && tTs > eTs) {
+        recurSeen[key] = t; // neither done — keep newer
       }
+      // if existing is done, keep it regardless
     }
   });
 
@@ -2413,11 +2416,13 @@ function _doCheckRecurringTasks() {
     if (!recurSeen2[key]) {
       recurSeen2[key] = t;
     } else {
-      // keep non-generated over generated, else keep newer
+      // keep done over not-done, else keep newer
       var existing = recurSeen2[key];
       var tTs = t.updatedAt || t.created || 0;
       var eTs = existing.updatedAt || existing.created || 0;
-      var keepT = (!t.generated && existing.generated) || (tTs > eTs && !(existing.generated === false && t.generated === true));
+      var tDone = isDoneStatus(t.status);
+      var eDone = isDoneStatus(existing.status);
+      var keepT = (tDone && !eDone) || (!eDone && !tDone && tTs > eTs);
       if (keepT) {
         toTrash.push(existing);
         recurSeen2[key] = t;
