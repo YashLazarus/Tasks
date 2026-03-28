@@ -1906,6 +1906,24 @@ function mergeTasks(localTasks, cloudTasks) {
   // rebuild result — keep non-recurring tasks + deduplicated recurring tasks
   var nonRecur = result.filter(function(t){ return !t.recur || !t.recur.groupId; });
   var dedupedRecur = Object.keys(recurSeen).map(function(k){ return recurSeen[k]; });
+
+  // filter out recurring tasks whose date is not tracked in recurState
+  // but only if recurState has at least one entry for that group (meaning it's been initialised)
+  var groupsInRecurState = {};
+  Object.keys(recurState).forEach(function(key) {
+    var gid = key.split('|')[0];
+    groupsInRecurState[gid] = true;
+  });
+  dedupedRecur = dedupedRecur.filter(function(t) {
+    if (!t.recur || !t.recur.groupId) return true;
+    var gid = t.recur.groupId;
+    // if group not in recurState yet (old data, first sync) — keep all instances
+    if (!groupsInRecurState[gid]) return true;
+    // if group is in recurState — only keep instances whose date is tracked
+    var rs = getRecurState(gid, t.due);
+    return rs !== null; // keep if tracked (active/done/deleted)
+  });
+
   return nonRecur.concat(dedupedRecur);
 }
 
@@ -3853,6 +3871,7 @@ function markComplete(id) {
             if (t2.recur && t2.recur.groupId) {
               setRecurState(t2.recur.groupId, t2.due, 'done');
               saveRecurState();
+              checkRecurringTasks();
               showToast('Only this instance is done — future instances will continue as scheduled');
             } else {
               showToast('Task marked complete');
@@ -3870,6 +3889,7 @@ function markComplete(id) {
   if (t.recur && t.recur.groupId) {
     setRecurState(t.recur.groupId, t.due, 'done');
     saveRecurState();
+    checkRecurringTasks();
     showToast('Only this instance is done — future instances will continue as scheduled');
   } else {
     showToast('Task marked complete');
@@ -3899,6 +3919,7 @@ function updateStatus(id, val) {
     if (newStatus && isDoneStatus(val)) {
       setRecurState(t.recur.groupId, t.due, 'done');
       saveRecurState();
+      checkRecurringTasks();
     }
     save(); render();
     if (newStatus && newStatus.name === 'Cancelled') {
@@ -4019,6 +4040,7 @@ function bulkMarkComplete() {
     }
   });
   saveRecurState();
+  checkRecurringTasks();
   save(); showToast(count+' tasks marked complete'); selectedIds.clear(); render();
 }
 
@@ -4612,6 +4634,7 @@ function dropKTask(targetStatusId, phIndex) {
             if (t2) { t2.status=capturedSid; t2.updatedAt=Date.now(); }
             if (t2 && t2.recur && t2.recur.groupId && isDoneStatus(capturedSid)) {
               setRecurState(t2.recur.groupId, t2.due, 'done'); saveRecurState();
+              checkRecurringTasks();
             }
             // insert at top of target column
             if (!kCardOrder[capturedSid]) kCardOrder[capturedSid] = [];
@@ -4637,6 +4660,7 @@ function dropKTask(targetStatusId, phIndex) {
   t.updatedAt = Date.now();
   if (t.recur && t.recur.groupId && isDoneStatus(targetStatusId)) {
     setRecurState(t.recur.groupId, t.due, 'done'); saveRecurState();
+    checkRecurringTasks();
   }
 
   // remove from old column order
@@ -4771,7 +4795,7 @@ function openMoveMenu(taskId, e) {
               [
                 { label:'Mark Complete', cls:'warning', action:function(){
                   t.status = s.id; t.updatedAt = Date.now();
-                  if (t.recur && t.recur.groupId) { setRecurState(t.recur.groupId, t.due, 'done'); saveRecurState(); }
+                  if (t.recur && t.recur.groupId) { setRecurState(t.recur.groupId, t.due, 'done'); saveRecurState(); checkRecurringTasks(); }
                   save(); renderKanban(); render();
                   if (kBacklogOpen) renderBacklogPanel();
                   if (t.recur && t.recur.groupId) {
@@ -4787,7 +4811,7 @@ function openMoveMenu(taskId, e) {
           }
         }
         t.status = s.id; t.updatedAt = Date.now();
-        if (t.recur && t.recur.groupId && isDoneStatus(s.id)) { setRecurState(t.recur.groupId, t.due, 'done'); saveRecurState(); }
+        if (t.recur && t.recur.groupId && isDoneStatus(s.id)) { setRecurState(t.recur.groupId, t.due, 'done'); saveRecurState(); checkRecurringTasks(); }
         save(); renderKanban(); render();
         if (kBacklogOpen) renderBacklogPanel();
         if (t.recur && t.recur.groupId) {
