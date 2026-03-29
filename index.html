@@ -1325,12 +1325,9 @@ html.dark .loading{background:#0f0f14}
       <div class="recur-row" id="recur-weekly-row" style="display:none">
         <label>On</label>
         <select id="recur-weekday">
-          <option value="1">Monday</option>
-          <option value="2">Tuesday</option>
-          <option value="3">Wednesday</option>
-          <option value="4">Thursday</option>
-          <option value="5">Friday</option>
-          <option value="6">Saturday</option>
+          <option value="1">Monday</option><option value="2">Tuesday</option>
+          <option value="3">Wednesday</option><option value="4">Thursday</option>
+          <option value="5">Friday</option><option value="6">Saturday</option>
           <option value="0">Sunday</option>
         </select>
       </div>
@@ -1919,9 +1916,9 @@ function mergeTasks(localTasks, cloudTasks) {
     var gid = t.recur.groupId;
     // if group not in recurState yet (old data, first sync) — keep all instances
     if (!groupsInRecurState[gid]) return true;
-    // if group is in recurState — only keep instances whose date is tracked
-    var rs = getRecurState(gid, t.due);
-    return rs !== null; // keep if tracked (active/done/deleted)
+    // only filter out if explicitly deleted in recurState
+    var rs = recurState[recurKey(gid, t.due)];
+    return rs !== 'deleted';
   });
 
   return nonRecur.concat(dedupedRecur);
@@ -2069,6 +2066,11 @@ function restoreFromTrash(trashId) {
     restored.updatedAt = Date.now();
     restored.generated = false;
     tasks.push(restored);
+    // restore recurState for recurring tasks — override any deleted/active state
+    if (restored.recur && restored.recur.groupId) {
+      recurState[recurKey(restored.recur.groupId, restored.due)] = 'active';
+      saveRecurState();
+    }
     // insert at top of column
     var restoredSid = restored.status;
     if (!kCardOrder[restoredSid]) kCardOrder[restoredSid] = [];
@@ -2507,130 +2509,92 @@ function checkRecurringTasks() {
 
 function _doCheckRecurringTasks() {
   var todayStr = padDate(getToday());
-  var added = false;
-
-  // ── STEP 0: deduplicate recurring instances by groupId+due ──
-  // Done status always wins. Keep only one instance per groupId+due.
-  var recurSeen2 = {};
-  var toTrash = [];
-  tasks.forEach(function(t) {
-    if (!t.recur || !t.recur.groupId) return;
-    var key = t.recur.groupId + '|' + t.due;
-    if (!recurSeen2[key]) {
-      recurSeen2[key] = t;
-    } else {
-      var existing = recurSeen2[key];
-      var tDone = isDoneStatus(t.status);
-      var eDone = isDoneStatus(existing.status);
-      var tTs = t.updatedAt || t.created || 0;
-      var eTs = existing.updatedAt || existing.created || 0;
-      var keepT = (tDone && !eDone) || (!tDone && !eDone && tTs > eTs);
-      if (keepT) { toTrash.push(existing); recurSeen2[key] = t; }
-      else { toTrash.push(t); }
-    }
-  });
-  if (toTrash.length) {
-    toTrash.forEach(function(x){
-      // if auto-generated duplicate, clear recurState so it can be properly recreated
-      if (x.generated && x.recur && x.recur.groupId) {
-        delete recurState[recurKey(x.recur.groupId, x.due)];
-      }
-      saveDeletedId(x.id);
-      moveToTrash(x, 'task', 'auto');
-    });
-    tasks = tasks.filter(function(t){ return !toTrash.some(function(x){ return x.id === t.id; }); });
-    added = true;
-  }
-
-  // ── STEP 1: sync recurState from existing tasks ──
-  // Backfill recurState for any tasks not yet tracked
-  tasks.forEach(function(t) {
-    if (!t.recur || !t.recur.groupId) return;
-    var state = getRecurState(t.recur.groupId, t.due);
-    if (!state) {
-      // not yet in recurState — infer from task status
-      if (isDoneStatus(t.status)) {
-        setRecurState(t.recur.groupId, t.due, 'done');
-      } else {
-        setRecurState(t.recur.groupId, t.due, 'active');
-      }
-    } else if (state === 'active' && isDoneStatus(t.status)) {
-      // task was marked done but recurState not updated — fix it
-      setRecurState(t.recur.groupId, t.due, 'done');
-    }
-  });
-
-  // ── STEP 2: generate missed instances + future placeholder ──
-  var snapshot = tasks.slice();
+  var changed = false;
+  var notStarted = statuses.find(function(s){ return s.name === 'Not started'; });
   var seenGroups = {};
 
-  snapshot.forEach(function(t) {
+  // Snapshot to avoid mutation issues during iteration
+  tasks.slice().forEach(function(t) {
     if (!t.recur || !t.recur.type || !t.recur.groupId) return;
-    var groupId = t.recur.groupId;
-    if (seenGroups[groupId]) return;
-    seenGroups[groupId] = true;
+    var gid = t.recur.groupId;
+    if (seenGroups[gid]) return;
+    seenGroups[gid] = true;
 
-    var siblings = tasks.filter(function(x){ return x.recur && x.recur.groupId === groupId; });
+    // Find latest due date in this group
+    var siblings = tasks.filter(function(x){ return x.recur && x.recur.groupId === gid; });
     var latest = siblings.reduce(function(max, x){ return x.due > max ? x.due : max; }, '0000-00-00');
-    var notStarted = statuses.find(function(s){ return s.name === 'Not started'; });
 
-    // generate missed instances up to and including today
+    // ── Generate missed instances up to today ──
     var next = nextDueDate(t.recur, latest);
     var safety = 0;
     while (next <= todayStr && safety < 365) {
       safety++;
-      var rs = getRecurState(groupId, next);
-      // skip if already tracked in recurState (active/done/deleted)
-      if (!rs) {
-        tasks.push({
-          id: generateId(),
-          created: Date.now(), updatedAt: Date.now(),
-          name: t.name, desc: t.desc, due: next,
-          priority: t.priority, assignee: t.assignee,
-          labels: (t.labels||[]).slice(),
-          status: notStarted ? notStarted.id : t.status,
-          subtasks: (t.subtasks||[]).map(function(s){ return {name:s.name,done:false}; }),
-          recur: Object.assign({}, t.recur)
+      // Write recurState FIRST — before creating the task
+      // Only create if recurState has no entry (not active/done/deleted)
+      var rs = recurState[recurKey(gid, next)];
+      var existsInTasks = tasks.some(function(x){
+        return x.recur && x.recur.groupId === gid && x.due === next;
+      });
+      if (!existsInTasks) {
+        // Check if manually deleted (user chose "this instance only")
+        var manuallyDeleted = trash.some(function(x){
+          return x.type==='task' && x.data && x.data.recur &&
+                 x.data.recur.groupId===gid && x.data.due===next && x.reason==='manual';
         });
-        setRecurState(groupId, next, 'active');
-        added = true;
+        // Only skip if: recurState says "done" or "deleted", OR manually trashed
+        if (rs !== 'done' && rs !== 'deleted' && !manuallyDeleted) {
+          recurState[recurKey(gid, next)] = 'active';
+          tasks.push({
+            id: generateId(),
+            created: Date.now(), updatedAt: Date.now(),
+            name: t.name, desc: t.desc, due: next,
+            priority: t.priority, assignee: t.assignee,
+            labels: (t.labels||[]).slice(),
+            status: notStarted ? notStarted.id : t.status,
+            subtasks: (t.subtasks||[]).map(function(s){ return {name:s.name,done:false}; }),
+            recur: Object.assign({}, t.recur)
+          });
+          changed = true;
+        }
       }
       latest = next;
       next = nextDueDate(t.recur, next);
     }
 
-    // ── STEP 3: maintain exactly one future placeholder ──
-    // todayExists: today's instance is tracked in recurState (active or done)
-    var todayState = getRecurState(groupId, todayStr);
-    var todayExists = (todayState === 'active' || todayState === 'done');
+    // ── Create exactly one future placeholder ──
+    // todayExists: today's instance in tasks[] OR marked done (possibly on another device)
+    var todayInTasks = tasks.some(function(x){
+      return x.recur && x.recur.groupId === gid && x.due === todayStr;
+    });
+    var todayRS = recurState[recurKey(gid, todayStr)];
+    var todayExists = todayInTasks || (todayRS === 'done');
 
-    // clean up extra future instances — keep only nearest
+    // Only one future instance allowed — clean up extras
     var futureInstances = tasks.filter(function(x){
-      return x.recur && x.recur.groupId === groupId && x.due > todayStr;
+      return x.recur && x.recur.groupId === gid && x.due > todayStr;
     });
     if (futureInstances.length > 1) {
       futureInstances.sort(function(a,b){ return a.due < b.due ? -1 : 1; });
-      var toRemove = futureInstances.slice(1);
-      toRemove.forEach(function(x){
-        // remove from recurState so these dates can be regenerated correctly later
-        delete recurState[recurKey(x.recur.groupId, x.due)];
+      futureInstances.slice(1).forEach(function(x){
+        delete recurState[recurKey(gid, x.due)];
         saveDeletedId(x.id);
         moveToTrash(x, 'task', 'auto');
         tasks = tasks.filter(function(task){ return task.id !== x.id; });
       });
-      added = true;
+      changed = true;
     }
 
-    // create future placeholder only if none exists and today is accounted for
+    // Create future placeholder if none exists and today is accounted for
     var futureExists = tasks.some(function(x){
-      return x.recur && x.recur.groupId === groupId && x.due > todayStr;
+      return x.recur && x.recur.groupId === gid && x.due > todayStr;
     });
     if (!futureExists && todayExists) {
-      var latestAll = tasks.filter(function(x){ return x.recur && x.recur.groupId === groupId; })
+      var latestAll = tasks.filter(function(x){ return x.recur && x.recur.groupId === gid; })
         .reduce(function(max,x){ return x.due > max ? x.due : max; }, '0000-00-00');
       var futureDue = nextDueDate(t.recur, latestAll);
-      // only create if not already in recurState
-      if (!getRecurState(groupId, futureDue)) {
+      // Only create if not already in recurState
+      if (!recurState[recurKey(gid, futureDue)]) {
+        recurState[recurKey(gid, futureDue)] = 'active';
         tasks.push({
           id: generateId(),
           created: Date.now(), updatedAt: Date.now(),
@@ -2642,29 +2606,23 @@ function _doCheckRecurringTasks() {
           recur: Object.assign({}, t.recur),
           generated: true
         });
-        setRecurState(groupId, futureDue, 'active');
-        added = true;
+        changed = true;
       }
     }
-  });
 
-  // ── STEP 4: mark generated:true on future placeholders without the flag ──
-  tasks.forEach(function(t) {
-    if (!t.recur || !t.recur.groupId) return;
-    if (t.due > todayStr && !isDoneStatus(t.status) && !t.generated) {
-      // only mark generated if it's not the earliest instance in the group
-      var allSiblings = tasks.filter(function(x){ return x.recur && x.recur.groupId === t.recur.groupId; });
-      var earliestDue = allSiblings.reduce(function(min,x){ return x.due < min ? x.due : min; }, '9999-99-99');
-      if (t.due !== earliestDue) {
-        t.generated = true;
-        added = true;
+    // Mark future non-earliest instances as generated:true
+    var earliestDue = siblings.reduce(function(min,x){ return x.due < min ? x.due : min; }, '9999-99-99');
+    tasks.forEach(function(x){
+      if (x.recur && x.recur.groupId === gid && x.due > todayStr && !x.generated && x.due !== earliestDue) {
+        x.generated = true;
+        changed = true;
       }
-    }
+    });
   });
 
   pruneRecurState();
-  saveRecurState(); // always persist recurState changes (Step 1 backfill may not set added=true)
-  if (added) { save(); render(); }
+  saveRecurState();
+  if (changed) { save(); render(); }
 }
 
 function getRecurData() {
@@ -2697,9 +2655,27 @@ function migrateRecurringGenerated() {
   try { localStorage.setItem('recur-migrated-v1', '1'); } catch(e) {}
 }
 
+function deprecateRecurringTasks() {
+  // One-time: move all recurring tasks to trash, clear recurState
+  try { if (localStorage.getItem('recur-deprecated-v1')) return; } catch(e) {}
+  var recurTasks = tasks.filter(function(t){ return t.recur && t.recur.groupId; });
+  if (recurTasks.length) {
+    recurTasks.forEach(function(t){
+      saveDeletedId(t.id);
+      moveToTrash(t, 'task', 'auto');
+    });
+    tasks = tasks.filter(function(t){ return !t.recur || !t.recur.groupId; });
+    recurState = {};
+    try { localStorage.removeItem('recur-state'); } catch(e) {}
+    save();
+  }
+  try { localStorage.setItem('recur-deprecated-v1', '1'); } catch(e) {}
+}
+
 function init() {
   patchFixedStatuses();
   migrateRecurringGenerated();
+  deprecateRecurringTasks();
   pruneRecurState();
   purgeStaleTrashedItems();
   autoArchiveCompletedTasks();
@@ -3546,6 +3522,9 @@ function saveTask() {
         if (recurData) {
           var gid = 'grp-'+Date.now();
           tasks[idx].recur = Object.assign({groupId:gid}, recurData);
+          // register in recurState immediately so sync doesn't filter it out
+          recurState[recurKey(gid, tasks[idx].due)] = 'active';
+          saveRecurState();
         }
       }
     }
@@ -3556,9 +3535,9 @@ function saveTask() {
       newTask.recur = Object.assign({groupId:newGid}, recurData);
     }
     tasks.push(newTask);
-    // register in recurState
+    // register in recurState — write BEFORE checkRecurringTasks runs
     if (newTask.recur && newTask.recur.groupId) {
-      setRecurState(newTask.recur.groupId, newTask.due, 'active');
+      recurState[recurKey(newTask.recur.groupId, newTask.due)] = 'active';
       saveRecurState();
     }
     // insert at top of column card order
@@ -3570,18 +3549,6 @@ function saveTask() {
     save(); checkRecurringTasks(); render(); renderSidebarLabels(); closeModal();
     showToast('Task added');
     return;
-  }
-  // informational toast for recurring tasks set to Cancelled or Backlog
-  if (editingId) {
-    var savedTask = tasks.find(function(x){ return x.id===editingId; });
-    if (savedTask && savedTask.recur && savedTask.recur.groupId) {
-      var savedStatus = statuses.find(function(s){ return s.id === savedTask.status; });
-      if (savedStatus && (savedStatus.name === 'Cancelled' || savedStatus.name === 'Backlog')) {
-        save(); checkRecurringTasks(); render(); renderSidebarLabels(); closeModal();
-        showToast('Only this instance is ' + savedStatus.name.toLowerCase() + ' — future instances will continue as scheduled');
-        return;
-      }
-    }
   }
   save(); checkRecurringTasks(); render(); renderSidebarLabels(); closeModal();
   // refresh side panel if this task is currently open
@@ -3869,7 +3836,7 @@ function markComplete(id) {
             t2.status = doneStatus2 ? doneStatus2.id : t2.status;
             t2.updatedAt = Date.now();
             if (t2.recur && t2.recur.groupId) {
-              setRecurState(t2.recur.groupId, t2.due, 'done');
+              recurState[recurKey(t2.recur.groupId, t2.due)] = 'done';
               saveRecurState();
               checkRecurringTasks();
               showToast('Only this instance is done — future instances will continue as scheduled');
@@ -3887,7 +3854,7 @@ function markComplete(id) {
   t.status = doneStatus ? doneStatus.id : t.status;
   t.updatedAt = Date.now();
   if (t.recur && t.recur.groupId) {
-    setRecurState(t.recur.groupId, t.due, 'done');
+    recurState[recurKey(t.recur.groupId, t.due)] = 'done';
     saveRecurState();
     checkRecurringTasks();
     showToast('Only this instance is done — future instances will continue as scheduled');
@@ -3916,20 +3883,14 @@ function updateStatus(id, val) {
   t.status = val; t.updatedAt = Date.now();
   if (t.recur && t.recur.groupId) {
     var newStatus = statuses.find(function(s){ return s.id === val; });
-    if (newStatus && isDoneStatus(val)) {
-      setRecurState(t.recur.groupId, t.due, 'done');
+    if (isDoneStatus(val)) {
+      recurState[recurKey(t.recur.groupId, t.due)] = 'done';
       saveRecurState();
       checkRecurringTasks();
     }
     save(); render();
-    if (newStatus && newStatus.name === 'Cancelled') {
-      showToast('Only this instance is cancelled — future instances will continue as scheduled');
-      return;
-    }
-    if (newStatus && newStatus.name === 'Backlog') {
-      showToast('Only this instance is backlogged — future instances will continue as scheduled');
-      return;
-    }
+    if (newStatus && newStatus.name === 'Cancelled') { showToast('Only this instance is cancelled — future instances will continue as scheduled'); return; }
+    if (newStatus && newStatus.name === 'Backlog')   { showToast('Only this instance is backlogged — future instances will continue as scheduled'); return; }
   } else {
     save(); render();
   }
@@ -3979,13 +3940,12 @@ function updateDate(id, val) {
 function deleteTask(id) {
   var t = tasks.find(function(x){ return x.id===id; });
   if (!t) return;
-  // close side panel if this task is currently open
   if (kPanelTaskId === id) closeKPanel();
-  var isRecurring = t.recur && t.recur.groupId;
-  if (isRecurring) {
+  if (t.recur && t.recur.groupId) {
     var capturedId  = id;
     var capturedT   = t;
     var capturedGid = t.recur.groupId;
+    var capturedDue = t.due;
     showConfirm(
       'Delete recurring task?',
       '"' + t.name + '"',
@@ -3997,14 +3957,35 @@ function deleteTask(id) {
           save(); render(); renderSidebarLabels(); renderSettingsPage();
           showToast('Instance moved to trash');
         }},
-{ label: 'This instance + all future occurrences', cls: 'danger', action: function() {
-          var series = tasks.filter(function(x){ return x.recur && x.recur.groupId===capturedGid; });
+        { label: 'This instance + all future', cls: 'danger', action: function() {
+          // Trash all existing instances from this date forward
+          var series = tasks.filter(function(x){ return x.recur && x.recur.groupId === capturedGid && x.due >= capturedDue; });
           series.forEach(function(x){
+            recurState[recurKey(capturedGid, x.due)] = 'deleted';
             saveDeletedId(x.id);
             moveToTrash(x, 'task', 'manual');
           });
+          // Also mark future unborn dates as deleted — up to 2 years ahead
+          // so the engine can never regenerate them
+          var recurT = tasks.find(function(x){ return x.recur && x.recur.groupId === capturedGid; });
+          if (!recurT) recurT = series[0]; // fallback to series task
+          if (recurT && recurT.recur) {
+            var futureDate = capturedDue;
+            var safety = 0;
+            while (safety < 730) { // 2 years max
+              safety++;
+              if (!recurState[recurKey(capturedGid, futureDate)]) {
+                recurState[recurKey(capturedGid, futureDate)] = 'deleted';
+              }
+              futureDate = nextDueDate(recurT.recur, futureDate);
+              // stop if we've gone 2 years past the start date
+              var daysAhead = Math.round((new Date(futureDate+'T00:00:00') - getToday()) / 86400000);
+              if (daysAhead > 730) break;
+            }
+          }
+          saveRecurState();
           save(); render(); renderSidebarLabels(); renderSettingsPage();
-          showToast('Series moved to trash');
+          showToast('This and future instances moved to trash');
         }},
         { label: 'Cancel', cls: 'neutral', action: null }
       ]
@@ -4036,7 +4017,9 @@ function bulkMarkComplete() {
     var t = tasks.find(function(x){ return x.id===id; });
     if (t && doneStatus) {
       t.status = doneStatus.id; t.updatedAt = Date.now();
-      if (t.recur && t.recur.groupId) { setRecurState(t.recur.groupId, t.due, 'done'); }
+      if (t.recur && t.recur.groupId) {
+        recurState[recurKey(t.recur.groupId, t.due)] = 'done';
+      }
     }
   });
   saveRecurState();
@@ -4632,9 +4615,9 @@ function dropKTask(targetStatusId, phIndex) {
           { label:'Mark Complete', cls:'warning', action:function(){
             var t2 = tasks.find(function(x){ return x.id===capturedId; });
             if (t2) { t2.status=capturedSid; t2.updatedAt=Date.now(); }
-            if (t2 && t2.recur && t2.recur.groupId && isDoneStatus(capturedSid)) {
-              setRecurState(t2.recur.groupId, t2.due, 'done'); saveRecurState();
-              checkRecurringTasks();
+            if (t2 && t2.recur && t2.recur.groupId) {
+              recurState[recurKey(t2.recur.groupId, t2.due)] = 'done';
+              saveRecurState(); checkRecurringTasks();
             }
             // insert at top of target column
             if (!kCardOrder[capturedSid]) kCardOrder[capturedSid] = [];
@@ -4659,7 +4642,8 @@ function dropKTask(targetStatusId, phIndex) {
   t.status = targetStatusId;
   t.updatedAt = Date.now();
   if (t.recur && t.recur.groupId && isDoneStatus(targetStatusId)) {
-    setRecurState(t.recur.groupId, t.due, 'done'); saveRecurState();
+    recurState[recurKey(t.recur.groupId, t.due)] = 'done';
+    saveRecurState();
     checkRecurringTasks();
   }
 
@@ -4677,7 +4661,6 @@ function dropKTask(targetStatusId, phIndex) {
   saveKanbanPrefs();
   renderKanban();
   render();
-  // toast — recurring-specific or generic
   if (t.recur && t.recur.groupId) {
     if (targetStatus.name === 'Done')      { showToast('Only this instance is done — future instances will continue as scheduled'); return; }
     if (targetStatus.name === 'Cancelled') { showToast('Only this instance is cancelled — future instances will continue as scheduled'); return; }
@@ -4795,7 +4778,10 @@ function openMoveMenu(taskId, e) {
               [
                 { label:'Mark Complete', cls:'warning', action:function(){
                   t.status = s.id; t.updatedAt = Date.now();
-                  if (t.recur && t.recur.groupId) { setRecurState(t.recur.groupId, t.due, 'done'); saveRecurState(); checkRecurringTasks(); }
+                  if (t.recur && t.recur.groupId) {
+                    recurState[recurKey(t.recur.groupId, t.due)] = 'done';
+                    saveRecurState(); checkRecurringTasks();
+                  }
                   save(); renderKanban(); render();
                   if (kBacklogOpen) renderBacklogPanel();
                   if (t.recur && t.recur.groupId) {
@@ -4811,7 +4797,10 @@ function openMoveMenu(taskId, e) {
           }
         }
         t.status = s.id; t.updatedAt = Date.now();
-        if (t.recur && t.recur.groupId && isDoneStatus(s.id)) { setRecurState(t.recur.groupId, t.due, 'done'); saveRecurState(); checkRecurringTasks(); }
+        if (t.recur && t.recur.groupId && isDoneStatus(s.id)) {
+          recurState[recurKey(t.recur.groupId, t.due)] = 'done';
+          saveRecurState(); checkRecurringTasks();
+        }
         save(); renderKanban(); render();
         if (kBacklogOpen) renderBacklogPanel();
         if (t.recur && t.recur.groupId) {
