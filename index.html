@@ -2496,10 +2496,15 @@ function nextDueDate(r, fromDate) {
     var days = r.unit === 'weeks' ? r.interval * 7 : r.interval;
     d.setDate(d.getDate() + days);
   }
-  return d.toISOString().slice(0,10);
+  return padDate(d);
 }
 
-function padDate(d) { return d.toISOString().slice(0,10); }
+function padDate(d) {
+  var y = d.getFullYear();
+  var m = String(d.getMonth()+1).padStart(2,'0');
+  var day = String(d.getDate()).padStart(2,'0');
+  return y+'-'+m+'-'+day;
+}
 
 var _recurTimer = null;
 function checkRecurringTasks() {
@@ -2704,7 +2709,7 @@ function init() {
 
 // ── HELPERS ─────────────────────────────────────────────
 function daysFrom(d) {
-  var t = new Date(d); t.setHours(0,0,0,0);
+  var t = new Date(d + 'T00:00:00'); t.setHours(0,0,0,0);
   return Math.round((t - getToday()) / 86400000);
 }
 
@@ -4937,7 +4942,7 @@ function loadFocusSettings() {
       var cutoff = Date.now() - 90*86400000;
       arr = arr.filter(function(s){ return (s.startedAt||0) > cutoff; });
       allFocusSessions = arr;
-      var today = new Date().toISOString().slice(0,10);
+      var today = padDate(new Date());
       focusTodaySessions = arr.filter(function(s){ return s.date === today; });
     }
   } catch(e) {}
@@ -5086,7 +5091,7 @@ function focusTick_fn() {
 
 // ── LOGGING ──────────────────────────────────────────────
 function logFocusSession(actualMins, pauses, completed) {
-  var today = new Date().toISOString().slice(0,10);
+  var today = padDate(new Date());
   var session = {
     id: 'sess-'+Date.now(),
     date: today,
@@ -5140,7 +5145,7 @@ function fetchFocusSessions() {
             .sort(function(a,b){ return (a.startedAt||0)-(b.startedAt||0); });
           localStorage.setItem('focus-today-sessions', JSON.stringify(all));
           allFocusSessions = all;
-          var today = new Date().toISOString().slice(0,10);
+          var today = padDate(new Date());
           focusTodaySessions = all.filter(function(s){ return s.date === today; });
           // update widget stats if open
           updateFocusWidget();
