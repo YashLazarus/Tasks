@@ -687,10 +687,15 @@ html.dark .focus-widget{box-shadow:0 12px 40px rgba(0,0,0,.4),0 2px 8px rgba(0,0
 .smart-footer span{color:var(--accent);font-weight:500}
 .smart-empty{text-align:center;padding:3rem 1rem;color:var(--muted);font-size:.88rem}
 /* Smart view weight sliders */
-.weight-slider-row{display:flex;align-items:center;gap:10px;margin-bottom:.65rem}
+.weight-slider-row{display:flex;align-items:center;gap:10px;margin-bottom:.85rem}
 .weight-slider-label{font-size:.82rem;font-weight:500;min-width:90px}
-.weight-slider-val{font-family:var(--mono);font-size:.72rem;color:var(--accent);min-width:32px;text-align:right}
+.weight-slider-val{font-family:var(--mono);font-size:.72rem;color:var(--accent);min-width:18px;text-align:right;font-weight:600}
 input[type=range].weight-slider{flex:1;accent-color:var(--accent)}
+.weight-info-btn{width:16px;height:16px;border-radius:50%;border:1px solid var(--border2);background:none;font-family:var(--mono);font-size:.6rem;color:var(--muted);cursor:pointer;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .15s;position:relative}
+.weight-info-btn:hover{border-color:var(--accent);color:var(--accent)}
+.weight-tooltip{position:absolute;bottom:calc(100% + 6px);left:50%;transform:translateX(-50%);background:var(--text);color:#fff;font-family:var(--sans);font-size:.72rem;line-height:1.4;padding:7px 10px;border-radius:8px;white-space:nowrap;max-width:220px;white-space:normal;width:220px;z-index:300;display:none;pointer-events:none}
+.weight-tooltip::after{content:'';position:absolute;top:100%;left:50%;transform:translateX(-50%);border:5px solid transparent;border-top-color:var(--text)}
+.weight-info-btn:hover .weight-tooltip{display:block}
 @keyframes smartDone{0%{opacity:1;transform:translateX(0)}100%{opacity:0;transform:translateX(16px)}}
 .smart-row.removing .task-row,.smart-row.removing .task-card-wrap{animation:smartDone .3s ease forwards}
 tr.recurring-row td:nth-child(2){border-bottom:1px solid rgba(13,148,136,0.4)}
@@ -1114,24 +1119,38 @@ html.dark .loading{background:#0f0f14}
       </div>
       <div class="settings-section">
         <div class="settings-section-title">Ranking Weights</div>
-        <div class="settings-section-desc">Adjust how tasks are ranked in Smart View. Weights are automatically balanced.</div>
+        <div class="settings-section-desc">Each factor is independent (0–10). Set to 0 to ignore a factor completely.</div>
         <div style="margin-top:.75rem">
           <div class="weight-slider-row">
             <span class="weight-slider-label">Urgency</span>
-            <input type="range" class="weight-slider" id="sw-urgency" min="10" max="70" value="40" oninput="updateSmartWeight('urgency',this.value)">
-            <span class="weight-slider-val" id="sw-urgency-val">40</span>
+            <input type="range" class="weight-slider" id="sw-urgency" min="0" max="10" value="8" oninput="updateSmartWeight('urgency',this.value)">
+            <span class="weight-slider-val" id="sw-urgency-val">8</span>
+            <button class="weight-info-btn">i<div class="weight-tooltip">How close to the due date. Overdue 2+ days scores highest, then 1 day overdue, due today, due tomorrow. Future tasks score 0.</div></button>
           </div>
           <div class="weight-slider-row">
             <span class="weight-slider-label">Priority</span>
-            <input type="range" class="weight-slider" id="sw-priority" min="10" max="70" value="30" oninput="updateSmartWeight('priority',this.value)">
-            <span class="weight-slider-val" id="sw-priority-val">30</span>
+            <input type="range" class="weight-slider" id="sw-priority" min="0" max="10" value="7" oninput="updateSmartWeight('priority',this.value)">
+            <span class="weight-slider-val" id="sw-priority-val">7</span>
+            <button class="weight-info-btn">i<div class="weight-tooltip">The task's set priority. High = full score, Medium = half score, Low = 0. Set this to 0 to rank purely by urgency.</div></button>
           </div>
           <div class="weight-slider-row">
-            <span class="weight-slider-label">Task Size</span>
-            <input type="range" class="weight-slider" id="sw-size" min="10" max="70" value="30" oninput="updateSmartWeight('size',this.value)">
-            <span class="weight-slider-val" id="sw-size-val">30</span>
+            <span class="weight-slider-label">Effort</span>
+            <input type="range" class="weight-slider" id="sw-effort" min="0" max="10" value="5" oninput="updateSmartWeight('effort',this.value)">
+            <span class="weight-slider-val" id="sw-effort-val">5</span>
+            <button class="weight-info-btn">i<div class="weight-tooltip">How much work the task requires, based on time estimate and subtask count. In Eat the Frog mode harder tasks rank higher. In Quick Wins mode easier tasks rank higher.</div></button>
           </div>
-          <div style="font-family:var(--mono);font-size:.65rem;color:var(--muted);margin-top:.4rem">Total: <span id="sw-total">100</span></div>
+          <div class="weight-slider-row">
+            <span class="weight-slider-label">Momentum</span>
+            <input type="range" class="weight-slider" id="sw-momentum" min="0" max="10" value="4" oninput="updateSmartWeight('momentum',this.value)">
+            <span class="weight-slider-val" id="sw-momentum-val">4</span>
+            <button class="weight-info-btn">i<div class="weight-tooltip">How far along you are. Tasks with subtasks mostly completed rank higher — rewards finishing what you started. Tasks with no subtasks get a neutral score.</div></button>
+          </div>
+          <div class="weight-slider-row">
+            <span class="weight-slider-label">Staleness</span>
+            <input type="range" class="weight-slider" id="sw-staleness" min="0" max="10" value="3" oninput="updateSmartWeight('staleness',this.value)">
+            <span class="weight-slider-val" id="sw-staleness-val">3</span>
+            <button class="weight-info-btn">i<div class="weight-tooltip">How long the task has been sitting untouched. Tasks not updated for 7+ days score highest. Helps surface forgotten tasks before they become urgent.</div></button>
+          </div>
         </div>
       </div>
     </div>
@@ -2628,12 +2647,20 @@ document.addEventListener('click', function(e) {
 // ── SMART VIEW ───────────────────────────────────────────
 var smartView = false;
 var smartMode = localStorage.getItem('smart-mode') || 'frog'; // 'frog' | 'wins'
-var smartWeights = { urgency: 40, priority: 30, size: 30 };
+var smartWeights = { urgency: 8, priority: 7, effort: 5, momentum: 4, staleness: 3 };
 
 function loadSmartWeights() {
   try {
     var s = localStorage.getItem('smart-weights');
-    if (s) smartWeights = JSON.parse(s);
+    if (s) {
+      var loaded = JSON.parse(s);
+      // migrate old 3-factor weights to new 5-factor
+      if (loaded.size !== undefined && loaded.effort === undefined) {
+        smartWeights = { urgency: 8, priority: 7, effort: 5, momentum: 4, staleness: 3 };
+      } else {
+        smartWeights = loaded;
+      }
+    }
   } catch(e) {}
 }
 
@@ -2650,53 +2677,66 @@ function scoreTask(t, mode) {
   var d = daysFrom(t.due);
   var w = smartWeights;
 
-  // Urgency score (0 to w.urgency)
-  var urgency = 0;
-  if (d < -1)      urgency = w.urgency;           // overdue 2+ days
-  else if (d === -1) urgency = Math.round(w.urgency * 0.8); // overdue 1 day
-  else if (d === 0)  urgency = Math.round(w.urgency * 0.6); // due today
-  else if (d === 1)  urgency = Math.round(w.urgency * 0.2); // due tomorrow
-  else               urgency = 0;
+  // ── Urgency (0–10 raw) ──
+  var urgencyRaw = 0;
+  if (d < -1)        urgencyRaw = 10;  // overdue 2+ days
+  else if (d === -1) urgencyRaw = 8;   // overdue 1 day
+  else if (d === 0)  urgencyRaw = 6;   // due today
+  else if (d === 1)  urgencyRaw = 2;   // due tomorrow
+  else               urgencyRaw = 0;   // future
 
-  // Priority score (0 to w.priority)
-  var priority = 0;
-  if (t.priority === 'high')   priority = w.priority;
-  else if (t.priority === 'medium') priority = Math.round(w.priority * 0.5);
+  // ── Priority (0–10 raw) ──
+  var priorityRaw = 0;
+  if (t.priority === 'high')        priorityRaw = 10;
+  else if (t.priority === 'medium') priorityRaw = 5;
+  else                              priorityRaw = 0;
 
-  // Size score (0 to w.size) — flips based on mode
-  var size = 0;
+  // ── Effort (0–10 raw) — flips by mode ──
   var est = t.estimate || null;
   var subs = (t.subtasks||[]).length;
-  var hasDesc = !!(t.desc && t.desc.trim());
-
-  if (mode === 'frog') {
-    // harder tasks score higher
-    if (est) {
-      if (est > 60)      size = w.size;
-      else if (est > 30) size = Math.round(w.size * 0.67);
-      else               size = Math.round(w.size * 0.33);
-    } else {
-      size = Math.round(w.size * 0.5); // neutral
-    }
-    // bonus for complexity
-    var bonus = Math.min(subs * 2, 8) + (hasDesc ? 3 : 0);
-    size = Math.min(size + bonus, w.size);
+  var effortRaw = 0;
+  // estimate contribution (0–8)
+  var estScore = 0;
+  if (est) {
+    if (est > 60)      estScore = 8;
+    else if (est > 30) estScore = 6;
+    else if (est >= 15) estScore = 3;
+    else               estScore = 1;
   } else {
-    // easier tasks score higher
-    if (est) {
-      if (est < 15)      size = w.size;
-      else if (est < 30) size = Math.round(w.size * 0.73);
-      else if (est < 60) size = Math.round(w.size * 0.4);
-      else               size = 0;
-    } else {
-      size = Math.round(w.size * 0.5); // neutral
-    }
-    // bonus for simplicity
-    var bonus2 = (subs === 0 ? 8 : 0) + (hasDesc ? 0 : 3);
-    size = Math.min(size + bonus2, w.size);
+    estScore = 4; // neutral — no estimate
+  }
+  // subtask contribution (0–2 bonus)
+  var subScore = subs >= 5 ? 2 : subs >= 3 ? 1 : 0;
+  effortRaw = Math.min(estScore + subScore, 10);
+  // flip for Quick Wins — easier tasks score higher
+  if (mode === 'wins') effortRaw = 10 - effortRaw;
+
+  // ── Momentum (0–10 raw) ──
+  var momentumRaw = 5; // neutral — no subtasks
+  if (subs > 0) {
+    var done = (t.subtasks||[]).filter(function(s){ return s.done; }).length;
+    var ratio = done / subs;
+    if (ratio >= 0.8)      momentumRaw = 10; // almost done
+    else if (ratio >= 0.5) momentumRaw = 7;  // more than half
+    else if (ratio >= 0.2) momentumRaw = 4;  // some progress
+    else                   momentumRaw = 1;  // barely started
   }
 
-  return urgency + priority + size;
+  // ── Staleness (0–10 raw) ──
+  var lastTouched = t.updatedAt || t.created || Date.now();
+  var daysUntouched = Math.round((Date.now() - lastTouched) / 86400000);
+  var stalenessRaw = 0;
+  if (daysUntouched >= 14)     stalenessRaw = 10;
+  else if (daysUntouched >= 7) stalenessRaw = 7;
+  else if (daysUntouched >= 3) stalenessRaw = 4;
+  else if (daysUntouched >= 1) stalenessRaw = 2;
+  else                         stalenessRaw = 0;
+
+  return (urgencyRaw * w.urgency) +
+         (priorityRaw * w.priority) +
+         (effortRaw * w.effort) +
+         (momentumRaw * w.momentum) +
+         (stalenessRaw * w.staleness);
 }
 
 function getSmartList() {
@@ -2867,38 +2907,20 @@ function maybeLogTaskCompletion(t) {
 }
 
 function updateSmartWeight(key, val) {
-  val = parseInt(val);
-  smartWeights[key] = val;
-  // normalise: keep others proportional so total = 100
-  var keys = ['urgency','priority','size'];
-  var others = keys.filter(function(k){ return k !== key; });
-  var remaining = 100 - val;
-  var otherTotal = others.reduce(function(s,k){ return s + smartWeights[k]; }, 0);
-  if (otherTotal > 0) {
-    others.forEach(function(k){
-      smartWeights[k] = Math.max(5, Math.round((smartWeights[k] / otherTotal) * remaining));
-    });
-    // fix rounding drift
-    var total = keys.reduce(function(s,k){ return s + smartWeights[k]; }, 0);
-    smartWeights[others[0]] += (100 - total);
-  }
+  smartWeights[key] = parseInt(val);
   saveSmartWeights();
   renderSmartWeightSliders();
   if (smartView) renderSmartView();
 }
 
 function renderSmartWeightSliders() {
-  var keys = ['urgency','priority','size'];
-  var total = 0;
+  var keys = ['urgency','priority','effort','momentum','staleness'];
   keys.forEach(function(k){
     var sl = document.getElementById('sw-'+k);
     var vl = document.getElementById('sw-'+k+'-val');
-    if (sl) sl.value = smartWeights[k];
-    if (vl) vl.textContent = smartWeights[k];
-    total += smartWeights[k];
+    if (sl) sl.value = smartWeights[k] !== undefined ? smartWeights[k] : 0;
+    if (vl) vl.textContent = smartWeights[k] !== undefined ? smartWeights[k] : 0;
   });
-  var tot = document.getElementById('sw-total');
-  if (tot) tot.textContent = total;
 }
 
 function switchToSmart() {
