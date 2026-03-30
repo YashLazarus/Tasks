@@ -653,6 +653,46 @@ html.dark .focus-widget{box-shadow:0 12px 40px rgba(0,0,0,.4),0 2px 8px rgba(0,0
 .recur-row select:focus,.recur-row input[type=number]:focus{border-color:var(--accent)}
 .recur-row input[type=number]{width:70px}
 .recur-badge{display:inline-flex;align-items:center;gap:4px;font-family:var(--mono);font-size:.68rem;font-weight:500;padding:2px 8px;border-radius:20px;background:rgba(13,148,136,0.12);color:#0d9488;white-space:nowrap;margin-top:2px}
+.estimate-pill{display:inline-flex;align-items:center;gap:3px;font-family:var(--mono);font-size:.67rem;color:var(--muted);background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:1px 6px;cursor:pointer;transition:border-color .15s,color .15s;white-space:nowrap}
+.estimate-pill:hover{border-color:var(--accent);color:var(--accent)}
+.estimate-pill svg{opacity:.55;flex-shrink:0}
+.estimate-popover{position:absolute;top:calc(100% + 4px);left:0;background:var(--surface);border:1px solid var(--border2);border-radius:10px;padding:8px 10px;display:none;align-items:center;gap:8px;box-shadow:0 4px 16px rgba(0,0,0,.12);z-index:200;white-space:nowrap}
+.estimate-popover.open{display:flex}
+.estimate-popover input[type=number]{width:64px;border:1px solid var(--border);border-radius:6px;padding:4px 8px;font-family:var(--mono);font-size:.78rem;color:var(--text);background:var(--surface2);outline:none}
+.estimate-popover input[type=number]:focus{border-color:var(--accent)}
+.estimate-popover .est-unit{font-family:var(--mono);font-size:.7rem;color:var(--muted)}
+.estimate-popover .est-save{padding:4px 10px;background:var(--accent);color:#fff;border:none;border-radius:6px;font-family:var(--sans);font-size:.75rem;font-weight:600;cursor:pointer}
+.estimate-popover .est-clear{padding:4px 8px;background:none;color:var(--muted);border:1px solid var(--border);border-radius:6px;font-family:var(--sans);font-size:.75rem;cursor:pointer}
+/* ── SMART VIEW ── */
+.smart-view-container{padding:0}
+.smart-mood-bar{display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;flex-wrap:wrap;gap:10px}
+.smart-mood-toggle{display:flex;background:var(--surface);border:1px solid var(--border);border-radius:11px;padding:3px;gap:2px}
+.smart-mood-btn{display:flex;align-items:center;gap:5px;padding:.38rem .85rem;border-radius:8px;border:none;background:transparent;font-family:var(--sans);font-size:.78rem;font-weight:600;color:var(--muted);cursor:pointer;transition:all .15s}
+.smart-mood-btn:hover{color:var(--text)}
+.smart-mood-btn.active-frog{background:#dc2626;color:#fff;box-shadow:0 2px 8px rgba(220,38,38,.2)}
+.smart-mood-btn.active-wins{background:#16a34a;color:#fff;box-shadow:0 2px 8px rgba(22,163,74,.2)}
+.smart-summary-bar{display:flex;align-items:center;gap:.75rem;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:.75rem 1.1rem;margin-bottom:1rem;flex-wrap:wrap}
+.smart-summary-stat{display:flex;flex-direction:column;gap:1px}
+.smart-summary-stat .sv{font-size:1.2rem;font-weight:700;letter-spacing:-.03em;line-height:1}
+.smart-summary-stat .sl{font-family:var(--mono);font-size:.6rem;color:var(--muted);text-transform:uppercase;letter-spacing:.06em}
+.smart-summary-divider{width:1px;height:28px;background:var(--border);flex-shrink:0}
+.smart-list{display:flex;flex-direction:column;gap:6px}
+.smart-row{display:flex;align-items:flex-start;gap:8px}
+.smart-rank{font-family:var(--mono);font-size:.75rem;font-weight:700;min-width:28px;padding-top:14px;flex-shrink:0;text-align:right}
+.smart-rank.r1{color:#dc2626;font-size:.85rem}
+.smart-rank.r2{color:#d97706}
+.smart-rank.r3{color:#4f46e5}
+.smart-rank.rn{color:var(--muted);font-weight:500}
+.smart-footer{text-align:center;padding:.75rem 0 .25rem;font-family:var(--mono);font-size:.68rem;color:var(--muted)}
+.smart-footer span{color:var(--accent);font-weight:500}
+.smart-empty{text-align:center;padding:3rem 1rem;color:var(--muted);font-size:.88rem}
+/* Smart view weight sliders */
+.weight-slider-row{display:flex;align-items:center;gap:10px;margin-bottom:.65rem}
+.weight-slider-label{font-size:.82rem;font-weight:500;min-width:90px}
+.weight-slider-val{font-family:var(--mono);font-size:.72rem;color:var(--accent);min-width:32px;text-align:right}
+input[type=range].weight-slider{flex:1;accent-color:var(--accent)}
+@keyframes smartDone{0%{opacity:1;transform:translateX(0)}100%{opacity:0;transform:translateX(16px)}}
+.smart-row.removing .task-row,.smart-row.removing .task-card-wrap{animation:smartDone .3s ease forwards}
 tr.recurring-row td:nth-child(2){border-bottom:1px solid rgba(13,148,136,0.4)}
 .task-card.recurring-card{border-top:3px solid rgba(13,148,136,0.5)}
 .toast{position:fixed;bottom:1.5rem;left:50%;transform:translateX(-50%) translateY(60px);background:#1e1e2e;border:1px solid rgba(255,255,255,0.1);border-radius:10px;padding:.6rem 1.2rem;font-size:.8rem;color:#f0f0f5;font-family:var(--mono);z-index:200;transition:transform .25s ease,opacity .25s;opacity:0;pointer-events:none;white-space:nowrap;box-shadow:0 4px 20px rgba(0,0,0,0.4)}
@@ -902,6 +942,10 @@ html.dark .loading{background:#0f0f14}
           <svg width="13" height="13" viewBox="0 0 13 13" fill="none"><rect x="1" y="1" width="3" height="11" rx="1.5" stroke="currentColor" stroke-width="1.3"/><rect x="5" y="1" width="3" height="7" rx="1.5" stroke="currentColor" stroke-width="1.3"/><rect x="9" y="1" width="3" height="9" rx="1.5" stroke="currentColor" stroke-width="1.3"/></svg>
           Board
         </button>
+        <button class="view-btn" id="smart-view-btn" onclick="switchToSmart()">
+          <svg width="13" height="13" viewBox="0 0 13 13" fill="none"><path d="M1 2.5h3v3H1zM5 2.5h7M5 6.5h7M1 9h11" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          Smart
+        </button>
       </div>
     </div>
 
@@ -999,6 +1043,43 @@ html.dark .loading{background:#0f0f14}
     </div>
   </div>
 
+  <!-- SMART VIEW -->
+  <div id="smart-view" style="display:none">
+    <div class="smart-view-container">
+      <!-- Mood bar -->
+      <div class="smart-mood-bar">
+        <div style="display:flex;flex-direction:column;gap:2px">
+          <div style="font-size:.82rem;font-weight:600" id="smart-mode-label">🐸 Eat the Frog</div>
+          <div style="font-family:var(--mono);font-size:.63rem;color:var(--muted)" id="smart-mode-desc">Tackle hardest tasks first</div>
+        </div>
+        <div class="smart-mood-toggle">
+          <button class="smart-mood-btn active-frog" id="smart-btn-frog" onclick="setSmartMode('frog')">🐸 Eat the Frog</button>
+          <button class="smart-mood-btn" id="smart-btn-wins" onclick="setSmartMode('wins')">⚡ Quick Wins</button>
+        </div>
+      </div>
+      <!-- Summary bar -->
+      <div class="smart-summary-bar">
+        <div class="smart-summary-stat">
+          <div class="sv" id="sv-remaining">0</div>
+          <div class="sl">Tasks left</div>
+        </div>
+        <div class="smart-summary-divider"></div>
+        <div class="smart-summary-stat">
+          <div class="sv" id="sv-time">—</div>
+          <div class="sl">Est. to clear</div>
+        </div>
+        <div class="smart-summary-divider"></div>
+        <div class="smart-summary-stat">
+          <div class="sv" style="color:var(--red)" id="sv-overdue">0</div>
+          <div class="sl">Overdue</div>
+        </div>
+      </div>
+      <!-- Task list -->
+      <div class="smart-list" id="smart-list"></div>
+      <div class="smart-footer" id="smart-footer"></div>
+    </div>
+  </div>
+
   <!-- SETTINGS PAGE -->
   <div id="settings-view" class="settings-page">
     <div class="page-header">
@@ -1021,6 +1102,36 @@ html.dark .loading{background:#0f0f14}
             Dark Mode
           </div>
           <div class="dark-toggle-icon" id="dark-toggle-icon"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- GROUP: ACCOUNT -->
+    <div class="settings-group">
+      <div class="settings-group-title">
+        <svg width="13" height="13" viewBox="0 0 13 13" fill="none"><path d="M1 2.5h3v3H1zM5 2.5h7M5 6.5h7M1 9h11" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        Smart View
+      </div>
+      <div class="settings-section">
+        <div class="settings-section-title">Ranking Weights</div>
+        <div class="settings-section-desc">Adjust how tasks are ranked in Smart View. Weights are automatically balanced.</div>
+        <div style="margin-top:.75rem">
+          <div class="weight-slider-row">
+            <span class="weight-slider-label">Urgency</span>
+            <input type="range" class="weight-slider" id="sw-urgency" min="10" max="70" value="40" oninput="updateSmartWeight('urgency',this.value)">
+            <span class="weight-slider-val" id="sw-urgency-val">40</span>
+          </div>
+          <div class="weight-slider-row">
+            <span class="weight-slider-label">Priority</span>
+            <input type="range" class="weight-slider" id="sw-priority" min="10" max="70" value="30" oninput="updateSmartWeight('priority',this.value)">
+            <span class="weight-slider-val" id="sw-priority-val">30</span>
+          </div>
+          <div class="weight-slider-row">
+            <span class="weight-slider-label">Task Size</span>
+            <input type="range" class="weight-slider" id="sw-size" min="10" max="70" value="30" oninput="updateSmartWeight('size',this.value)">
+            <span class="weight-slider-val" id="sw-size-val">30</span>
+          </div>
+          <div style="font-family:var(--mono);font-size:.65rem;color:var(--muted);margin-top:.4rem">Total: <span id="sw-total">100</span></div>
         </div>
       </div>
     </div>
@@ -1269,10 +1380,6 @@ html.dark .loading{background:#0f0f14}
         <label>Due date *</label>
         <input type="date" id="f-due">
       </div>
-      <div class="form-row">
-        <label>Assignee</label>
-        <input type="text" id="f-assignee" placeholder="e.g. John D." maxlength="50">
-      </div>
     </div>
     <div class="form-grid">
       <div class="form-row">
@@ -1286,6 +1393,16 @@ html.dark .loading{background:#0f0f14}
       <div class="form-row">
         <label>Status</label>
         <select id="f-status"></select>
+      </div>
+    </div>
+    <div class="form-grid">
+      <div class="form-row">
+        <label>Estimate (min)</label>
+        <input type="number" id="f-estimate" placeholder="e.g. 30" min="1" max="480">
+      </div>
+      <div class="form-row">
+        <label>Assignee</label>
+        <input type="text" id="f-assignee" placeholder="e.g. John D." maxlength="50">
       </div>
     </div>
     <div class="form-row">
@@ -2451,6 +2568,361 @@ function save() {
 }
 
 // ── RECURRING ENGINE ────────────────────────────────────
+// ── ESTIMATE HELPERS ─────────────────────────────────────
+function formatEstimate(mins) {
+  if (!mins) return '';
+  if (mins < 60) return mins + 'm';
+  var h = Math.floor(mins/60), m = mins%60;
+  return m ? h+'h '+m+'m' : h+'h';
+}
+
+function estimatePillHTML(t) {
+  return '<span class="estimate-pill" onclick="openEstimatePopover('+t.id+',event)" style="position:relative">'
+    +'<svg width="9" height="9" viewBox="0 0 12 12" fill="none"><circle cx="6" cy="6" r="5" stroke="currentColor" stroke-width="1.2"/><path d="M6 3.5v3l2 1" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>'
+    +(t.estimate ? formatEstimate(t.estimate) : '+ estimate')
+    +'<div class="estimate-popover" id="epop-'+t.id+'">'
+      +'<input type="number" id="epop-input-'+t.id+'" value="'+(t.estimate||'')+'" placeholder="30" min="1" max="480" onclick="event.stopPropagation()">'
+      +'<span class="est-unit">min</span>'
+      +'<button class="est-save" onclick="saveEstimatePill('+t.id+');event.stopPropagation()">Save</button>'
+      +(t.estimate ? '<button class="est-clear" onclick="clearEstimatePill('+t.id+');event.stopPropagation()">✕</button>' : '')
+    +'</div>'
+  +'</span>';
+}
+
+function openEstimatePopover(id, e) {
+  e.stopPropagation();
+  // close all others
+  document.querySelectorAll('.estimate-popover.open').forEach(function(p){ p.classList.remove('open'); });
+  var pop = document.getElementById('epop-'+id);
+  if (pop) {
+    pop.classList.add('open');
+    var inp = document.getElementById('epop-input-'+id);
+    if (inp) { inp.focus(); inp.select(); }
+  }
+}
+
+function saveEstimatePill(id) {
+  var t = tasks.find(function(x){ return x.id===id; }); if (!t) return;
+  var inp = document.getElementById('epop-input-'+id);
+  var val = inp ? parseInt(inp.value) : null;
+  t.estimate = (val && val > 0) ? val : null;
+  t.updatedAt = Date.now();
+  document.querySelectorAll('.estimate-popover.open').forEach(function(p){ p.classList.remove('open'); });
+  save(); render(); if (smartView) renderSmartView();
+}
+
+function clearEstimatePill(id) {
+  var t = tasks.find(function(x){ return x.id===id; }); if (!t) return;
+  t.estimate = null; t.updatedAt = Date.now();
+  document.querySelectorAll('.estimate-popover.open').forEach(function(p){ p.classList.remove('open'); });
+  save(); render(); if (smartView) renderSmartView();
+}
+
+// close popovers on outside click
+document.addEventListener('click', function(e) {
+  if (!e.target.closest('.estimate-pill')) {
+    document.querySelectorAll('.estimate-popover.open').forEach(function(p){ p.classList.remove('open'); });
+  }
+});
+
+// ── SMART VIEW ───────────────────────────────────────────
+var smartView = false;
+var smartMode = localStorage.getItem('smart-mode') || 'frog'; // 'frog' | 'wins'
+var smartWeights = { urgency: 40, priority: 30, size: 30 };
+
+function loadSmartWeights() {
+  try {
+    var s = localStorage.getItem('smart-weights');
+    if (s) smartWeights = JSON.parse(s);
+  } catch(e) {}
+}
+
+function saveSmartWeights() {
+  try { localStorage.setItem('smart-weights', JSON.stringify(smartWeights)); } catch(e) {}
+}
+
+function scoreTask(t, mode) {
+  var inactive = getInactiveStatusIds();
+  if (inactive.indexOf(t.status) >= 0) return -1; // inactive — exclude
+  if (isDoneStatus(t.status)) return -1; // done — exclude
+  if (isFutureRecurring(t)) return -1; // hidden placeholder — exclude
+
+  var d = daysFrom(t.due);
+  var w = smartWeights;
+
+  // Urgency score (0 to w.urgency)
+  var urgency = 0;
+  if (d < -1)      urgency = w.urgency;           // overdue 2+ days
+  else if (d === -1) urgency = Math.round(w.urgency * 0.8); // overdue 1 day
+  else if (d === 0)  urgency = Math.round(w.urgency * 0.6); // due today
+  else if (d === 1)  urgency = Math.round(w.urgency * 0.2); // due tomorrow
+  else               urgency = 0;
+
+  // Priority score (0 to w.priority)
+  var priority = 0;
+  if (t.priority === 'high')   priority = w.priority;
+  else if (t.priority === 'medium') priority = Math.round(w.priority * 0.5);
+
+  // Size score (0 to w.size) — flips based on mode
+  var size = 0;
+  var est = t.estimate || null;
+  var subs = (t.subtasks||[]).length;
+  var hasDesc = !!(t.desc && t.desc.trim());
+
+  if (mode === 'frog') {
+    // harder tasks score higher
+    if (est) {
+      if (est > 60)      size = w.size;
+      else if (est > 30) size = Math.round(w.size * 0.67);
+      else               size = Math.round(w.size * 0.33);
+    } else {
+      size = Math.round(w.size * 0.5); // neutral
+    }
+    // bonus for complexity
+    var bonus = Math.min(subs * 2, 8) + (hasDesc ? 3 : 0);
+    size = Math.min(size + bonus, w.size);
+  } else {
+    // easier tasks score higher
+    if (est) {
+      if (est < 15)      size = w.size;
+      else if (est < 30) size = Math.round(w.size * 0.73);
+      else if (est < 60) size = Math.round(w.size * 0.4);
+      else               size = 0;
+    } else {
+      size = Math.round(w.size * 0.5); // neutral
+    }
+    // bonus for simplicity
+    var bonus2 = (subs === 0 ? 8 : 0) + (hasDesc ? 0 : 3);
+    size = Math.min(size + bonus2, w.size);
+  }
+
+  return urgency + priority + size;
+}
+
+function getSmartList() {
+  return tasks
+    .map(function(t){ return { task: t, score: scoreTask(t, smartMode) }; })
+    .filter(function(x){ return x.score >= 0; })
+    .sort(function(a,b){ return b.score - a.score; })
+    .slice(0, 10)
+    .map(function(x){ return x.task; });
+}
+
+function setSmartMode(mode) {
+  smartMode = mode;
+  try { localStorage.setItem('smart-mode', mode); } catch(e) {}
+  document.getElementById('smart-btn-frog').className = 'smart-mood-btn' + (mode==='frog' ? ' active-frog' : '');
+  document.getElementById('smart-btn-wins').className = 'smart-mood-btn' + (mode==='wins' ? ' active-wins' : '');
+  if (mode === 'frog') {
+    document.getElementById('smart-mode-label').textContent = '🐸 Eat the Frog';
+    document.getElementById('smart-mode-desc').textContent = 'Tackle hardest tasks first';
+  } else {
+    document.getElementById('smart-mode-label').textContent = '⚡ Quick Wins';
+    document.getElementById('smart-mode-desc').textContent = 'Clear short tasks fast, build momentum';
+  }
+  renderSmartView();
+}
+
+function renderSmartView() {
+  if (!smartView) return;
+  var list = getSmartList();
+  var inactive = getInactiveStatusIds();
+  var allActive = tasks.filter(function(t){
+    return inactive.indexOf(t.status) < 0 && !isDoneStatus(t.status) && !isFutureRecurring(t);
+  });
+  var totalEst = list.reduce(function(s,t){ return s + (t.estimate||0); }, 0);
+  var overdue = allActive.filter(function(t){ return daysFrom(t.due) < 0; }).length;
+
+  // Update summary
+  document.getElementById('sv-remaining').textContent = allActive.length;
+  document.getElementById('sv-time').textContent = totalEst ? formatEstimate(totalEst) : '—';
+  document.getElementById('sv-overdue').textContent = overdue;
+
+  // Update mode buttons
+  document.getElementById('smart-btn-frog').className = 'smart-mood-btn' + (smartMode==='frog' ? ' active-frog' : '');
+  document.getElementById('smart-btn-wins').className = 'smart-mood-btn' + (smartMode==='wins' ? ' active-wins' : '');
+
+  var container = document.getElementById('smart-list');
+  if (!list.length) {
+    container.innerHTML = '<div class="smart-empty">🎉 All caught up! No active tasks to show.</div>';
+    document.getElementById('smart-footer').innerHTML = '';
+    return;
+  }
+
+  container.innerHTML = list.map(function(t, i) {
+    var rank = i + 1;
+    var rankCls = rank===1?'r1':rank===2?'r2':rank===3?'r3':'rn';
+    var dStr = new Date(t.due+'T00:00:00').toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'});
+    var dClass = dueDateClass(t);
+    var doneStatus = isDoneStatus(t.status);
+    var hasSubs = t.subtasks && t.subtasks.length > 0;
+    var isRecurring = t.recur && t.recur.type;
+    var recurBadge = isRecurring ? '<div class="recur-badge"><svg width="10" height="10" viewBox="0 0 14 14" fill="none"><path d="M2 7A5 5 0 1 0 7 2H5m0 0L3 4m2-2L3 0" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>'+recurLabel(t.recur)+'</div>' : '';
+    var sSel = sOpts(t);
+    var sel = selectedIds.has(t.id);
+    var pDotClass = 'priority-dot-'+t.priority;
+    var pRowClass = 'p-row-'+t.priority;
+    var doneStyle = doneStatus ? 'text-decoration:line-through;color:var(--muted)' : '';
+
+    var row = '<tr class="task-row '+pRowClass+(doneStatus?' done-row':'')+(isRecurring?' recurring-row':'')+(sel?' sel-row':'')+'">'
+      +'<td class="strip-td"></td>'
+      +'<td class="checkbox-cell"><div class="checkbox-wrap"><input type="checkbox" '+(sel?'checked':'')+' onchange="toggleSelect('+t.id+',this)"></div></td>'
+      +'<td class="task-cell" style="max-width:280px">'
+        +'<div style="display:flex;align-items:flex-start;gap:6px">'
+          +'<span class="'+pDotClass+'" style="margin-top:5px"></span>'
+          +'<div style="min-width:0;flex:1">'
+            +'<div style="display:flex;align-items:center;gap:5px;flex-wrap:wrap">'
+              +'<span class="task-name" style="'+doneStyle+'">'+escapeHTML(t.name)+'</span>'
+              +labelsHTML(t)
+            +'</div>'
+            +(t.desc?'<div class="task-desc">'+escapeHTML(t.desc)+'</div>':'')
+            +(t.assignee?'<div class="task-assignee">'+escapeHTML(t.assignee)+'</div>':'')
+            +recurBadge
+            +(t.estimate?'<div style="margin-top:3px">'+estimatePillHTML(t)+'</div>':'')
+            +(hasSubs?progressHTML(t):'')
+          +'</div>'
+        +'</div>'
+      +'</td>'
+      +'<td style="position:relative">'
+        +'<span class="due-date '+dClass+'" onclick="openDatePicker('+t.id+')" title="Click to change date">'
+          +dStr
+          +'<svg width="11" height="11" viewBox="0 0 11 11" fill="none" style="opacity:.4;flex-shrink:0"><rect x="1" y="2" width="9" height="8" rx="1.5" stroke="currentColor" stroke-width="1.2"/><path d="M3.5 1v2M7.5 1v2M1 5h9" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>'
+        +'</span>'
+        +'<input type="date" id="dp-'+t.id+'" value="'+t.due+'" style="position:absolute;top:0;left:0;opacity:0;pointer-events:none;width:1px;height:1px" onchange="updateDate('+t.id+',this.value)">'
+      +'</td>'
+      +'<td>'+daysBadgeHTML(t)+'</td>'
+      +'<td><select class="inline-sel" style="'+statusStyle(t.status)+'" onchange="updateStatusSmart('+t.id+',this.value)">'+sSel+'</select></td>'
+      +'<td><div class="actions-cell">'
+        +(!doneStatus
+          ? '<button class="action-btn complete" title="Mark complete" onclick="markCompleteSmart('+t.id+')"><svg width="13" height="13" viewBox="0 0 13 13" fill="none"><path d="M2 7l3.5 3.5L11 3" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></button>'
+          : '<button class="action-btn reopen" title="Reopen" onclick="reopenTask('+t.id+')"><svg width="13" height="13" viewBox="0 0 13 13" fill="none"><path d="M2 6.5A4.5 4.5 0 1 0 6.5 2H4m0 0l2-2M4 2l2 2" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg></button>')
+        +'<button class="action-btn" title="Edit" onclick="openModal('+t.id+')"><svg width="13" height="13" viewBox="0 0 13 13" fill="none"><path d="M9 2l2 2-7 7H2V9L9 2z" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/></svg></button>'
+        +'<button class="action-btn del" title="Delete" onclick="deleteTask('+t.id+')"><svg width="13" height="13" viewBox="0 0 13 13" fill="none"><path d="M2 3.5h9M5 3.5V2.5h3v1M5.5 6v4M7.5 6v4M3 3.5l.7 7h5.6L10 3.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg></button>'
+      +'</div></td>'
+    +'</tr>';
+
+    if (hasSubs && expandedIds.has(t.id)) row += subtaskRowsHTML(t);
+
+    return '<div class="smart-row" id="srow-'+t.id+'">'
+      +'<div class="smart-rank '+rankCls+'">#'+rank+'</div>'
+      +'<div style="flex:1;min-width:0"><table class="task-table" style="width:100%"><tbody>'+row+'</tbody></table></div>'
+    +'</div>';
+  }).join('');
+
+  var total = allActive.length;
+  document.getElementById('smart-footer').innerHTML = total > 10
+    ? 'Showing <span>10 of '+total+'</span> tasks'
+    : '';
+}
+
+function markCompleteSmart(id) {
+  markComplete(id);
+  setTimeout(function(){ renderSmartView(); }, 350);
+}
+
+function updateStatusSmart(id, val) {
+  updateStatus(id, val);
+  setTimeout(function(){ renderSmartView(); }, 100);
+}
+
+function logManualSession(t) {
+  var today = padDate(new Date());
+  var session = {
+    id: 'manual-'+Date.now(),
+    date: today,
+    duration: t.estimate,
+    taskId: String(t.id),
+    taskName: t.name,
+    type: 'manual',
+    startedAt: Date.now()
+  };
+  try {
+    var all = JSON.parse(localStorage.getItem('focus-today-sessions')||'[]');
+    all.push(session);
+    localStorage.setItem('focus-today-sessions', JSON.stringify(all));
+    focusTodaySessions = all.filter(function(s){ return s.date === today; });
+    allFocusSessions = allFocusSessions.filter(function(s){ return s.id !== session.id; });
+    allFocusSessions.push(session);
+    if (currentUser) {
+      ensureValidToken().then(function(valid){
+        if (!valid) return;
+        fetch(FIREBASE_DB_URL+'/users/'+currentUser.uid+'/focusSessions/'+session.id+'.json?auth='+currentUser.idToken, {
+          method: 'PUT',
+          headers: {'Content-Type':'application/json'},
+          body: JSON.stringify(session)
+        });
+      });
+    }
+  } catch(e) {}
+}
+
+function maybeLogTaskCompletion(t) {
+  // Only log once per task lifetime — sessionLogged flag prevents double counting
+  if (!t || t.sessionLogged) return;
+  t.sessionLogged = true;
+  // Only log if task has an estimate — no estimate means no time to record
+  if (t.estimate && t.estimate > 0) {
+    logManualSession(t);
+  }
+}
+
+function updateSmartWeight(key, val) {
+  val = parseInt(val);
+  smartWeights[key] = val;
+  // normalise: keep others proportional so total = 100
+  var keys = ['urgency','priority','size'];
+  var others = keys.filter(function(k){ return k !== key; });
+  var remaining = 100 - val;
+  var otherTotal = others.reduce(function(s,k){ return s + smartWeights[k]; }, 0);
+  if (otherTotal > 0) {
+    others.forEach(function(k){
+      smartWeights[k] = Math.max(5, Math.round((smartWeights[k] / otherTotal) * remaining));
+    });
+    // fix rounding drift
+    var total = keys.reduce(function(s,k){ return s + smartWeights[k]; }, 0);
+    smartWeights[others[0]] += (100 - total);
+  }
+  saveSmartWeights();
+  renderSmartWeightSliders();
+  if (smartView) renderSmartView();
+}
+
+function renderSmartWeightSliders() {
+  var keys = ['urgency','priority','size'];
+  var total = 0;
+  keys.forEach(function(k){
+    var sl = document.getElementById('sw-'+k);
+    var vl = document.getElementById('sw-'+k+'-val');
+    if (sl) sl.value = smartWeights[k];
+    if (vl) vl.textContent = smartWeights[k];
+    total += smartWeights[k];
+  });
+  var tot = document.getElementById('sw-total');
+  if (tot) tot.textContent = total;
+}
+
+function switchToSmart() {
+  smartView = true;
+  boardView = false;
+  document.getElementById('smart-view-btn').classList.add('active');
+  document.getElementById('list-view-btn').classList.remove('active');
+  document.getElementById('board-view-btn').classList.remove('active');
+  document.getElementById('list-view-elements').style.display = 'none';
+  document.getElementById('board-view').classList.remove('active');
+  document.getElementById('smart-view').style.display = 'block';
+  var summary = document.querySelector('.summary');
+  if (summary) summary.style.display = 'none';
+  var pageHeader = document.querySelector('.page-header .header-actions');
+  if (pageHeader) pageHeader.style.visibility = 'hidden';
+  var topbar = document.getElementById('topbar');
+  if (topbar) topbar.style.display = 'none';
+  var main = document.querySelector('.main');
+  if (main) main.style.paddingTop = '';
+  loadSmartWeights();
+  renderSmartView();
+  updateTopbar();
+}
+
 function recurLabel(r) {
   if (!r) return '';
   if (r.type === 'daily')   return 'Every day';
@@ -2554,6 +3026,7 @@ function _doCheckRecurringTasks() {
             created: Date.now(), updatedAt: Date.now(),
             name: t.name, desc: t.desc, due: next,
             priority: t.priority, assignee: t.assignee,
+            estimate: t.estimate || null,
             labels: (t.labels||[]).slice(),
             status: notStarted ? notStarted.id : t.status,
             subtasks: (t.subtasks||[]).map(function(s){ return {name:s.name,done:false}; }),
@@ -2605,6 +3078,7 @@ function _doCheckRecurringTasks() {
           created: Date.now(), updatedAt: Date.now(),
           name: t.name, desc: t.desc, due: futureDue,
           priority: t.priority, assignee: t.assignee,
+          estimate: t.estimate || null,
           labels: (t.labels||[]).slice(),
           status: notStarted ? notStarted.id : t.status,
           subtasks: (t.subtasks||[]).map(function(s){ return {name:s.name,done:false}; }),
@@ -2687,6 +3161,7 @@ function init() {
   initKColOrder();
   initSidebarState();
   loadFocusSettings();
+  loadSmartWeights();
   showFocusTimer();
   // always reset to dashboard view on init
   showingNotes    = false;
@@ -2868,6 +3343,7 @@ function getFilteredList() {
 // ── RENDER ──────────────────────────────────────────────
 function render() {
   if (boardView) { renderKanban(); return; }
+  if (smartView) { renderSmartView(); updateCounts(getFilteredList()); return; }
   var sort = document.getElementById('sort-by').value;
   var pOrd = {high:0,medium:1,low:2};
   var list = getFilteredList();
@@ -2923,6 +3399,7 @@ function renderTable(list) {
             +(t.desc?'<div class="task-desc">'+escapeHTML(t.desc)+'</div>':'')
             +(t.assignee?'<div class="task-assignee">'+escapeHTML(t.assignee)+'</div>':'')
             +recurBadge
+            +(t.estimate?'<div style="margin-top:3px">'+estimatePillHTML(t)+'</div>':'')
             +(hasSubs?progressHTML(t):'')
           +'</div>'
         +'</div>'
@@ -2985,6 +3462,7 @@ function renderCards(list) {
       +'</div>'
       +(t.desc?'<div class="task-card-desc">'+t.desc+'</div>':'')
       +(isRecurring?'<div class="recur-badge" style="margin-bottom:6px"><svg width="10" height="10" viewBox="0 0 14 14" fill="none"><path d="M2 7A5 5 0 1 0 7 2H5m0 0L3 4m2-2L3 0" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>'+recurLabel(t.recur)+'</div>':'')
+      +(t.estimate?'<div style="margin-bottom:5px">'+estimatePillHTML(t)+'</div>':'')
       +(subs.length?'<div style="margin-bottom:6px">'+progressHTML(t)+'</div>':'')
       +(t.labels&&t.labels.length?'<div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:8px">'+t.labels.map(function(lid){var l=getLabelById(lid);return l?'<span class="label-tag" style="'+labelStyle(lid)+'">'+l.name+'</span>':''}).join('')+'</div>':'')
       +'<div class="task-card-meta">'
@@ -3133,8 +3611,8 @@ function renderSettingsPage() {
   renderSyncSettingsStatus();
   renderTrash();
   applyDarkMode();
+  renderSmartWeightSliders();
   if (boardView) { renderBoardLabelFilters(); renderKanban(); }
-  // sync focus settings UI
   var durEl = document.getElementById('focus-duration-val');
   if (durEl) durEl.textContent = focusSettings.duration;
   var sndBtn = document.getElementById('focus-sound-toggle');
@@ -3441,6 +3919,7 @@ function openModal(id) {
     document.getElementById('f-priority').value = t.priority;
     fStat.value                                 = t.status;
     document.getElementById('f-assignee').value = t.assignee||'';
+    document.getElementById('f-estimate').value = t.estimate||'';
     modalSubtasks = (t.subtasks||[]).map(function(s){ return {name:s.name,done:s.done}; });
     modalLabels   = (t.labels||[]).slice();
     setRecurUI(t.recur||null);
@@ -3452,6 +3931,7 @@ function openModal(id) {
     var notStarted = statuses.find(function(s){ return s.name==='Not started'; });
     fStat.value = notStarted ? notStarted.id : (statuses[0]||{}).id;
     document.getElementById('f-assignee').value = '';
+    document.getElementById('f-estimate').value = '';
     modalSubtasks = [];
     modalLabels   = [];
     setRecurUI(null);
@@ -3493,6 +3973,7 @@ function saveTask() {
     priority:  document.getElementById('f-priority').value,
     status:    document.getElementById('f-status').value,
     assignee:  document.getElementById('f-assignee').value.trim(),
+    estimate:  parseInt(document.getElementById('f-estimate').value)||null,
     subtasks:  modalSubtasks.slice(),
     labels:    modalLabels.slice(),
     recur:     recurData,
@@ -3501,6 +3982,7 @@ function saveTask() {
   if (editingId) {
     var t = tasks.find(function(x){ return x.id===editingId; });
     var idx = tasks.findIndex(function(x){ return x.id===editingId; });
+    var wasNotDone = t && !isDoneStatus(t.status); // capture before edit
     if (idx > -1) {
       // if recurring, update this and all future instances in group
       if (t && t.recur && t.recur.groupId) {
@@ -3511,6 +3993,7 @@ function saveTask() {
             x.desc     = data.desc;
             x.priority = data.priority;
             x.assignee = data.assignee;
+            x.estimate = data.estimate;
             x.labels   = data.labels.slice();
             x.recur    = recurData ? Object.assign({groupId:groupId}, recurData) : null;
             x.updatedAt = data.updatedAt;
@@ -3530,6 +4013,11 @@ function saveTask() {
           recurState[recurKey(gid, tasks[idx].due)] = 'active';
           saveRecurState();
         }
+      }
+      // detect status changed to Done — log session
+      var updatedTask = tasks.find(function(x){ return x.id===editingId; });
+      if (wasNotDone && updatedTask && isDoneStatus(updatedTask.status)) {
+        maybeLogTaskCompletion(updatedTask);
       }
     }
   } else {
@@ -3785,6 +4273,33 @@ function deleteNote(e, id) {
 function setView(view, el) {
   currentView = view;
   showingNotes = false;
+  // exit smart/board view when navigating via sidebar
+  if (smartView) {
+    smartView = false;
+    document.getElementById('smart-view').style.display = 'none';
+    document.getElementById('list-view-elements').style.display = 'block';
+    document.getElementById('smart-view-btn').classList.remove('active');
+    document.getElementById('list-view-btn').classList.add('active');
+    var summary = document.querySelector('.summary');
+    if (summary) summary.style.display = '';
+    var pageHeader = document.querySelector('.page-header .header-actions');
+    if (pageHeader) pageHeader.style.visibility = '';
+  }
+  if (boardView) {
+    boardView = false;
+    document.getElementById('board-view').classList.remove('active');
+    document.getElementById('list-view-elements').style.display = 'block';
+    document.getElementById('board-view-btn').classList.remove('active');
+    document.getElementById('list-view-btn').classList.add('active');
+    var summary2 = document.querySelector('.summary');
+    if (summary2) summary2.style.display = '';
+    var pageHeader2 = document.querySelector('.page-header .header-actions');
+    if (pageHeader2) pageHeader2.style.visibility = '';
+    var topbar = document.getElementById('topbar');
+    if (topbar && window.innerWidth > 768) topbar.style.display = 'none';
+    var main = document.querySelector('.main');
+    if (main) main.style.paddingTop = '';
+  }
   var ns = document.getElementById('note-search'); if (ns) ns.value = '';
   if (showingSettings) { showingSettings = false; document.getElementById('settings-nav-btn').classList.remove('active'); }
   document.getElementById('dashboard-view').style.display = 'block';
@@ -3839,6 +4354,7 @@ function markComplete(id) {
             var t2 = tasks.find(function(x){ return x.id===capturedMarkId; }); if (!t2) return;
             t2.status = doneStatus2 ? doneStatus2.id : t2.status;
             t2.updatedAt = Date.now();
+            maybeLogTaskCompletion(t2);
             if (t2.recur && t2.recur.groupId) {
               recurState[recurKey(t2.recur.groupId, t2.due)] = 'done';
               saveRecurState();
@@ -3857,6 +4373,7 @@ function markComplete(id) {
   var doneStatus = statuses.find(function(s){ return s.name==='Done'; });
   t.status = doneStatus ? doneStatus.id : t.status;
   t.updatedAt = Date.now();
+  maybeLogTaskCompletion(t);
   if (t.recur && t.recur.groupId) {
     recurState[recurKey(t.recur.groupId, t.due)] = 'done';
     saveRecurState();
@@ -3885,6 +4402,7 @@ function updatePriority(id, val) {
 function updateStatus(id, val) {
   var t = tasks.find(function(x){ return x.id===id; }); if (!t) return;
   t.status = val; t.updatedAt = Date.now();
+  if (isDoneStatus(val)) maybeLogTaskCompletion(t);
   if (t.recur && t.recur.groupId) {
     var newStatus = statuses.find(function(s){ return s.id === val; });
     if (isDoneStatus(val)) {
@@ -4021,6 +4539,7 @@ function bulkMarkComplete() {
     var t = tasks.find(function(x){ return x.id===id; });
     if (t && doneStatus) {
       t.status = doneStatus.id; t.updatedAt = Date.now();
+      maybeLogTaskCompletion(t);
       if (t.recur && t.recur.groupId) {
         recurState[recurKey(t.recur.groupId, t.due)] = 'done';
       }
@@ -4165,17 +4684,18 @@ function kToggleLabelFilter(labelId) {
 }
 
 function switchToList() {
+  smartView = false;
   boardView = false;
   document.getElementById('list-view-btn').classList.add('active');
   document.getElementById('board-view-btn').classList.remove('active');
+  document.getElementById('smart-view-btn').classList.remove('active');
   document.getElementById('list-view-elements').style.display = 'block';
   document.getElementById('board-view').classList.remove('active');
+  document.getElementById('smart-view').style.display = 'none';
   var summary = document.querySelector('.summary');
   if (summary) summary.style.display = '';
-  // restore page header buttons
   var pageHeader = document.querySelector('.page-header .header-actions');
   if (pageHeader) pageHeader.style.visibility = '';
-  // hide topbar on desktop
   if (window.innerWidth > 768) {
     var topbar = document.getElementById('topbar');
     if (topbar) topbar.style.display = 'none';
@@ -4189,20 +4709,20 @@ function switchToList() {
 }
 
 function switchToBoard() {
+  smartView = false;
   boardView = true;
   document.getElementById('board-view-btn').classList.add('active');
   document.getElementById('list-view-btn').classList.remove('active');
+  document.getElementById('smart-view-btn').classList.remove('active');
   document.getElementById('list-view-elements').style.display = 'none';
   document.getElementById('board-view').classList.add('active');
+  document.getElementById('smart-view').style.display = 'none';
   var summary = document.querySelector('.summary');
   if (summary) summary.style.display = 'none';
-  // hide page header buttons — topbar has them in board view
   var pageHeader = document.querySelector('.page-header .header-actions');
   if (pageHeader) pageHeader.style.visibility = 'hidden';
-  // show topbar on desktop
   var topbar = document.getElementById('topbar');
   if (topbar) topbar.style.display = 'flex';
-  // hide hamburger on desktop — not needed
   var leftBtn = document.getElementById('topbar-left-btn');
   if (leftBtn && window.innerWidth > 768) leftBtn.style.display = 'none';
   if (window.innerWidth > 768) {
@@ -4506,6 +5026,7 @@ function makeKCard(t) {
         +dl.text
         +'<input type="date" id="kdp-'+t.id+'" value="'+t.due+'" style="position:absolute;top:0;left:0;opacity:0;pointer-events:none;width:1px;height:1px" onchange="updateKCardDate('+t.id+',this.value);event.stopPropagation()">'
       +'</span>'
+      +(t.estimate ? '<span class="estimate-pill" style="cursor:default;pointer-events:none"><svg width="9" height="9" viewBox="0 0 12 12" fill="none"><circle cx="6" cy="6" r="5" stroke="currentColor" stroke-width="1.2"/><path d="M6 3.5v3l2 1" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>'+formatEstimate(t.estimate)+'</span>' : '')
       +labelsHTML
     +'</div>'
     +(hasFooter
@@ -4619,6 +5140,7 @@ function dropKTask(targetStatusId, phIndex) {
           { label:'Mark Complete', cls:'warning', action:function(){
             var t2 = tasks.find(function(x){ return x.id===capturedId; });
             if (t2) { t2.status=capturedSid; t2.updatedAt=Date.now(); }
+            if (t2) maybeLogTaskCompletion(t2);
             if (t2 && t2.recur && t2.recur.groupId) {
               recurState[recurKey(t2.recur.groupId, t2.due)] = 'done';
               saveRecurState(); checkRecurringTasks();
@@ -4645,6 +5167,7 @@ function dropKTask(targetStatusId, phIndex) {
   var prevStatusId = t.status;
   t.status = targetStatusId;
   t.updatedAt = Date.now();
+  if (isDoneStatus(targetStatusId)) maybeLogTaskCompletion(t);
   if (t.recur && t.recur.groupId && isDoneStatus(targetStatusId)) {
     recurState[recurKey(t.recur.groupId, t.due)] = 'done';
     saveRecurState();
@@ -4782,6 +5305,7 @@ function openMoveMenu(taskId, e) {
               [
                 { label:'Mark Complete', cls:'warning', action:function(){
                   t.status = s.id; t.updatedAt = Date.now();
+                  maybeLogTaskCompletion(t);
                   if (t.recur && t.recur.groupId) {
                     recurState[recurKey(t.recur.groupId, t.due)] = 'done';
                     saveRecurState(); checkRecurringTasks();
@@ -4801,6 +5325,7 @@ function openMoveMenu(taskId, e) {
           }
         }
         t.status = s.id; t.updatedAt = Date.now();
+        if (isDoneStatus(s.id)) maybeLogTaskCompletion(t);
         if (t.recur && t.recur.groupId && isDoneStatus(s.id)) {
           recurState[recurKey(t.recur.groupId, t.due)] = 'done';
           saveRecurState(); checkRecurringTasks();
@@ -4876,6 +5401,7 @@ function openKPanel(taskId, e) {
       +'<div class="kpanel-value">'+new Date(t.due+'T00:00:00').toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long',year:'numeric'})+'</div>'
     +'</div>'
     +(t.assignee ? '<div class="kpanel-section"><div class="kpanel-label">Assignee</div><div class="kpanel-value">'+escapeHTML(t.assignee)+'</div></div>' : '')
+    +(t.estimate ? '<div class="kpanel-section"><div class="kpanel-label">Estimate</div><div class="kpanel-value">'+formatEstimate(t.estimate)+'</div></div>' : '')
     +(labelsHTML ? '<div class="kpanel-section"><div class="kpanel-label">Labels</div><div>'+labelsHTML+'</div></div>' : '')
     +subtasksHTML
     +(t.recur && t.recur.type ? '<div class="kpanel-section"><div class="kpanel-label">Recurring</div><div class="kpanel-value" style="display:flex;align-items:center;gap:6px"><span class="recur-badge">'+recurLabel(t.recur)+'</span></div></div>' : '');
