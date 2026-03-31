@@ -2338,9 +2338,13 @@ function renderTrash() {
 }
 
 // ── CONFIRM DIALOG ───────────────────────────────────────
-function showConfirm(title, desc, buttons) {
+function showConfirm(title, desc, buttons, useHTML) {
   document.getElementById('confirm-title').textContent = title;
-  document.getElementById('confirm-desc').textContent = desc;
+  if (useHTML) {
+    document.getElementById('confirm-desc').innerHTML = desc;
+  } else {
+    document.getElementById('confirm-desc').textContent = desc;
+  }
   var actions = document.getElementById('confirm-actions');
   actions.innerHTML = buttons.map(function(b, i) {
     var isCancel = b.label === 'Cancel' && b.cls === 'neutral';
@@ -2895,9 +2899,11 @@ function logManualSession(t) {
     id: 'manual-'+Date.now(),
     date: today,
     duration: t.estimate,
+    actualMins: t.estimate,
     taskId: String(t.id),
     taskName: t.name,
     type: 'manual',
+    countsFocusTime: false,
     startedAt: Date.now()
   };
   try {
@@ -3216,6 +3222,7 @@ function init() {
   initSidebarState();
   loadFocusSettings();
   loadSmartWeights();
+  recoverFocusTimerState();
   showFocusTimer();
   // always reset to dashboard view on init
   showingNotes    = false;
@@ -5617,6 +5624,8 @@ function focusStart() {
   focusElapsed = 0;
   focusPauses = 0;
   focusStartedAt = Date.now();
+  // Persist timer state — allows recovery if app is closed
+  saveFocusTimerState();
   focusTick = setInterval(focusTick_fn, 1000);
   updateFocusWidget();
   updateFocusChip();
@@ -5626,7 +5635,9 @@ function focusPause() {
   if (focusState !== 'running') return;
   focusState = 'paused';
   focusPauses++;
+  focusElapsed = Math.round((Date.now() - focusStartedAt) / 1000);
   if (focusTick) { clearInterval(focusTick); focusTick = null; }
+  saveFocusTimerState();
   updateFocusWidget();
   updateFocusChip();
 }
@@ -5634,51 +5645,221 @@ function focusPause() {
 function focusResume() {
   if (focusState !== 'paused') return;
   focusState = 'running';
+  // Adjust startedAt so elapsed continues correctly from paused position
+  focusStartedAt = Date.now() - (focusElapsed * 1000);
+  saveFocusTimerState();
   focusTick = setInterval(focusTick_fn, 1000);
   updateFocusWidget();
   updateFocusChip();
 }
 
 function focusStop() {
-  // Log session with actual elapsed time
   if (focusTick) { clearInterval(focusTick); focusTick = null; }
   var actualMins = Math.round(focusElapsed / 60);
-  if (actualMins > 0) {
-    logFocusSession(actualMins, focusPauses, false);
-  }
-  focusState = 'idle';
-  focusElapsed = 0;
-  focusPauses = 0;
+  focusState = 'done';
+  clearFocusTimerState();
   updateFocusWidget();
   updateFocusChip();
+  if (actualMins > 0) {
+    _focusPendingLog = { duration: actualMins, pauses: focusPauses };
+    showFocusTimerAwayPrompt('stopped', actualMins, actualMins);
+  } else {
+    focusState = 'idle';
+    focusElapsed = 0;
+    focusPauses = 0;
+    updateFocusWidget();
+    updateFocusChip();
+  }
 }
 
 function focusNextSession() {
   focusState = 'idle';
   focusElapsed = 0;
   focusPauses = 0;
+  clearFocusTimerState();
   updateFocusWidget();
   updateFocusChip();
 }
 
 function focusTick_fn() {
   if (focusState !== 'running') return;
-  focusElapsed++;
+  // Wall-clock based — always accurate regardless of tab visibility
+  focusElapsed = Math.round((Date.now() - focusStartedAt) / 1000);
   var totalSecs = focusSettings.duration * 60;
   if (focusElapsed >= totalSecs) {
-    // Session complete
     clearInterval(focusTick);
     focusTick = null;
     focusElapsed = totalSecs;
     focusState = 'done';
-    logFocusSession(focusSettings.duration, focusPauses, true);
+    clearFocusTimerState();
+    // Always prompt user to confirm how much to log
+    _focusPendingLog = { duration: focusSettings.duration, pauses: focusPauses };
     if (focusSettings.sound) playFocusSound();
     updateFocusWidget();
     updateFocusChip();
+    showFocusTimerAwayPrompt('ended', focusSettings.duration, focusSettings.duration);
     return;
   }
   updateFocusWidget();
   updateFocusChip();
+}
+
+// ── FOCUS TIMER STATE PERSISTENCE ────────────────────────
+function saveFocusTimerState() {
+  try {
+    localStorage.setItem('focus-timer-state', JSON.stringify({
+      state: focusState,
+      startedAt: focusStartedAt,
+      elapsed: focusElapsed,
+      pauses: focusPauses,
+      duration: focusSettings.duration,
+      savedAt: Date.now()
+    }));
+  } catch(e) {}
+}
+
+function clearFocusTimerState() {
+  try { localStorage.removeItem('focus-timer-state'); } catch(e) {}
+}
+
+function recoverFocusTimerState() {
+  // Called on app open — check if a session was in progress when app was closed
+  try {
+    var s = localStorage.getItem('focus-timer-state');
+    if (!s) return;
+    var state = JSON.parse(s);
+    if (state.state !== 'running' && state.state !== 'paused') {
+      clearFocusTimerState();
+      return;
+    }
+    var totalSecs = state.duration * 60;
+    var elapsedNow = Math.round((Date.now() - state.startedAt) / 1000);
+
+    if (state.state === 'paused') {
+      // Was paused — restore as paused
+      focusState = 'paused';
+      focusElapsed = state.elapsed;
+      focusPauses = state.pauses;
+      focusStartedAt = state.startedAt;
+      focusSettings.duration = state.duration;
+      updateFocusWidget();
+      updateFocusChip();
+      showFocusTimerAwayPrompt('paused', Math.round(state.elapsed / 60), state.duration);
+      return;
+    }
+
+    // Was running — check if timer has ended
+    if (elapsedNow >= totalSecs) {
+      // Timer ended while app was closed
+      focusState = 'done';
+      focusElapsed = totalSecs;
+      focusPauses = state.pauses;
+      focusSettings.duration = state.duration;
+      clearFocusTimerState();
+      _focusPendingLog = { duration: state.duration, pauses: state.pauses };
+      updateFocusWidget();
+      updateFocusChip();
+      showFocusTimerAwayPrompt('ended', state.duration, state.duration);
+    } else {
+      // Timer still running — resume from correct position
+      focusState = 'running';
+      focusStartedAt = state.startedAt;
+      focusElapsed = elapsedNow;
+      focusPauses = state.pauses;
+      focusSettings.duration = state.duration;
+      focusTick = setInterval(focusTick_fn, 1000);
+      updateFocusWidget();
+      updateFocusChip();
+    }
+  } catch(e) {
+    clearFocusTimerState();
+  }
+}
+
+// Away tracking
+var _focusAwayAt = null;
+var _focusPendingLog = null;
+
+document.addEventListener('visibilitychange', function() {
+  if (!currentUser) return;
+  if (document.hidden) {
+    // App going to background
+    if (focusState === 'running') {
+      _focusAwayAt = Date.now();
+      saveFocusTimerState();
+    }
+  } else {
+    // App returning to foreground
+    if (focusState === 'running' && _focusAwayAt) {
+      var awayMs = Date.now() - _focusAwayAt;
+      var awayMins = Math.round(awayMs / 60000);
+      _focusAwayAt = null;
+      // Recalculate elapsed from wall clock
+      focusElapsed = Math.round((Date.now() - focusStartedAt) / 1000);
+      var totalSecs = focusSettings.duration * 60;
+      if (focusElapsed >= totalSecs) {
+        // Timer ended while away
+        clearInterval(focusTick);
+        focusTick = null;
+        focusElapsed = totalSecs;
+        focusState = 'done';
+        clearFocusTimerState();
+        _focusPendingLog = { duration: focusSettings.duration, pauses: focusPauses };
+        updateFocusWidget();
+        updateFocusChip();
+        if (focusSettings.sound) playFocusSound();
+        showFocusTimerAwayPrompt('ended', focusSettings.duration, focusSettings.duration);
+      }
+      // else timer still running — wall clock already updated focusElapsed
+    } else if (focusState === 'done' && _focusPendingLog) {
+      showFocusTimerAwayPrompt('ended', _focusPendingLog.duration, _focusPendingLog.duration);
+    }
+  }
+});
+
+function showFocusTimerAwayPrompt(reason, suggestedMins, maxMins) {
+  // For paused sessions, suggestedMins comes in as seconds — convert to minutes
+  if (reason === 'paused') suggestedMins = Math.max(1, Math.round(suggestedMins / 60));
+  var msg = reason === 'ended'
+    ? 'Your ' + maxMins + ' min focus session ended. How much time do you want to log?'
+    : reason === 'stopped'
+    ? 'You stopped after ' + suggestedMins + ' min. How much time do you want to log?'
+    : 'You had a paused session (' + suggestedMins + ' min elapsed). Log this time?';
+
+  var capturedSuggested = suggestedMins;
+  var capturedMax = maxMins;
+
+  showConfirm(
+    '⏱ Log focus time?',
+    msg + '<br><div style="margin-top:10px;display:flex;align-items:center;gap:8px">'
+      +'<input type="number" id="focus-log-input" value="'+capturedSuggested+'" min="1" max="'+capturedMax+'" style="width:70px;padding:5px 8px;border:1px solid var(--border);border-radius:8px;font-family:var(--mono);font-size:.9rem;background:var(--surface2);color:var(--text);outline:none">'
+      +'<span style="font-family:var(--mono);font-size:.8rem;color:var(--muted)">min (max '+capturedMax+')</span>'
+    +'</div>',
+    [
+      { label: 'Log', cls: 'warning', action: function() {
+        var inp = document.getElementById('focus-log-input');
+        var custom = inp ? Math.min(Math.max(parseInt(inp.value)||capturedSuggested, 1), capturedMax) : capturedSuggested;
+        logFocusSession(custom, focusPauses||0, true);
+        _focusPendingLog = null;
+        focusState = 'idle'; focusElapsed = 0; focusPauses = 0;
+        clearFocusTimerState();
+        updateFocusWidget(); updateFocusChip();
+        showToast(custom + ' min logged');
+      }},
+      { label: "Don't log", cls: 'neutral', action: function() {
+        _focusPendingLog = null;
+        focusState = 'idle'; focusElapsed = 0; focusPauses = 0;
+        clearFocusTimerState();
+        updateFocusWidget(); updateFocusChip();
+      }}
+    ],
+    true // useHTML for the input field
+  );
+  // focus the input after dialog opens
+  setTimeout(function(){
+    var inp = document.getElementById('focus-log-input');
+    if (inp) { inp.focus(); inp.select(); }
+  }, 100);
 }
 
 // ── LOGGING ──────────────────────────────────────────────
@@ -5689,8 +5870,11 @@ function logFocusSession(actualMins, pauses, completed) {
     date: today,
     startedAt: focusStartedAt,
     actualMins: actualMins,
+    duration: actualMins,
     pauses: pauses,
-    completed: completed
+    completed: completed,
+    type: 'timer',
+    countsFocusTime: true
   };
   focusTodaySessions.push(session);
   allFocusSessions.push(session);
@@ -5770,7 +5954,19 @@ function fmtSecs(secs) {
 }
 
 function focusTotalMinsToday() {
-  return focusTodaySessions.reduce(function(a,s){ return a+s.actualMins; }, 0);
+  // Only count timer sessions — manual task completion sessions excluded
+  return focusTodaySessions.reduce(function(a,s){
+    if (s.countsFocusTime === false) return a;
+    return a + (s.actualMins || s.duration || 0);
+  }, 0);
+}
+
+function taskTotalMinsToday() {
+  // Only count manual sessions from task completions
+  return focusTodaySessions.reduce(function(a,s){
+    if (s.type !== 'manual') return a;
+    return a + (s.actualMins || s.duration || 0);
+  }, 0);
 }
 
 function updateFocusWidget() {
@@ -5803,7 +5999,7 @@ function updateFocusWidget() {
   }
   if (subEl) {
     subEl.textContent = focusState==='idle'    ? 'ready'
-                      : focusState==='running' ? 'session '+(focusTodaySessions.length+1)
+                      : focusState==='running' ? 'session '+(focusTodaySessions.filter(function(s){ return s.countsFocusTime !== false; }).length+1)
                       : focusState==='paused'  ? 'paused'
                       : fmtSecs(focusSettings.duration*60)+' completed';
   }
@@ -5822,7 +6018,7 @@ function updateFocusWidget() {
   // Session dots
   var dotsEl = document.getElementById('fw-dots');
   if (dotsEl) {
-    var completed = focusTodaySessions.length;
+    var completed = focusTodaySessions.filter(function(s){ return s.countsFocusTime !== false; }).length;
     var showDots = focusState==='running'||focusState==='paused' ? completed+1 : completed;
     showDots = Math.max(4, showDots+1);
     var html = '';
@@ -5863,7 +6059,7 @@ function updateFocusWidget() {
   // Footer stats
   var sc = document.getElementById('fw-sessions-count');
   var ft = document.getElementById('fw-focus-time');
-  if (sc) sc.textContent = focusTodaySessions.length;
+  if (sc) sc.textContent = focusTodaySessions.filter(function(s){ return s.countsFocusTime !== false; }).length;
   if (ft) ft.textContent = focusTotalMinsToday()+'m';
 }
 
@@ -5900,7 +6096,7 @@ function updateFocusChip() {
                         : fmtSecs(remaining);
   }
   if (meta) {
-    var s = focusTodaySessions.length;
+    var s = focusTodaySessions.filter(function(x){ return x.countsFocusTime !== false; }).length;
     meta.innerHTML = focusState==='idle'    ? 'tap to open'
                    : focusState==='running' ? '🍅 <span class="hi">'+s+'</span> · session '+(s+1)
                    : focusState==='paused'  ? 'paused'
