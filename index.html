@@ -656,7 +656,7 @@ html.dark .focus-widget{box-shadow:0 12px 40px rgba(0,0,0,.4),0 2px 8px rgba(0,0
 .estimate-pill{display:inline-flex;align-items:center;gap:3px;font-family:var(--mono);font-size:.67rem;color:var(--muted);background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:1px 6px;cursor:pointer;transition:border-color .15s,color .15s;white-space:nowrap}
 .estimate-pill:hover{border-color:var(--accent);color:var(--accent)}
 .estimate-pill svg{opacity:.55;flex-shrink:0}
-.estimate-popover{position:absolute;top:calc(100% + 4px);left:0;background:var(--surface);border:1px solid var(--border2);border-radius:10px;padding:8px 10px;display:none;align-items:center;gap:8px;box-shadow:0 4px 16px rgba(0,0,0,.12);z-index:200;white-space:nowrap}
+.estimate-popover{position:fixed;background:var(--surface);border:1px solid var(--border2);border-radius:10px;padding:8px 10px;display:none;align-items:center;gap:8px;box-shadow:0 4px 16px rgba(0,0,0,.12);z-index:200;white-space:nowrap}
 .estimate-popover.open{display:flex}
 .estimate-popover input[type=number]{width:64px;border:1px solid var(--border);border-radius:6px;padding:4px 8px;font-family:var(--mono);font-size:.78rem;color:var(--text);background:var(--surface2);outline:none}
 .estimate-popover input[type=number]:focus{border-color:var(--accent)}
@@ -693,9 +693,9 @@ html.dark .focus-widget{box-shadow:0 12px 40px rgba(0,0,0,.4),0 2px 8px rgba(0,0
 input[type=range].weight-slider{flex:1;accent-color:var(--accent)}
 .weight-info-btn{width:16px;height:16px;border-radius:50%;border:1px solid var(--border2);background:none;font-family:var(--mono);font-size:.6rem;color:var(--muted);cursor:pointer;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .15s;position:relative}
 .weight-info-btn:hover{border-color:var(--accent);color:var(--accent)}
-.weight-tooltip{position:absolute;bottom:calc(100% + 6px);left:50%;transform:translateX(-50%);background:var(--text);color:#fff;font-family:var(--sans);font-size:.72rem;line-height:1.4;padding:7px 10px;border-radius:8px;white-space:nowrap;max-width:220px;white-space:normal;width:220px;z-index:300;display:none;pointer-events:none}
-.weight-tooltip::after{content:'';position:absolute;top:100%;left:50%;transform:translateX(-50%);border:5px solid transparent;border-top-color:var(--text)}
-.weight-info-btn:hover .weight-tooltip{display:block}
+.weight-tooltip{position:absolute;bottom:calc(100% + 6px);left:50%;transform:translateX(-50%);background:#1a1a2e;color:#e8e8f0;font-family:var(--sans);font-size:.72rem;line-height:1.4;padding:7px 10px;border-radius:8px;white-space:nowrap;max-width:220px;white-space:normal;width:220px;z-index:300;display:none;pointer-events:none;border:1px solid rgba(255,255,255,0.1)}
+.weight-tooltip::after{content:'';position:absolute;top:100%;left:50%;transform:translateX(-50%);border:5px solid transparent;border-top-color:#1a1a2e}
+.weight-info-btn:hover .weight-tooltip,.weight-info-btn.tip-open .weight-tooltip{display:block}
 @keyframes smartDone{0%{opacity:1;transform:translateX(0)}100%{opacity:0;transform:translateX(16px)}}
 .smart-row.removing .task-row,.smart-row.removing .task-card-wrap{animation:smartDone .3s ease forwards}
 tr.recurring-row td:nth-child(2){border-bottom:1px solid rgba(13,148,136,0.4)}
@@ -1119,7 +1119,7 @@ html.dark .loading{background:#0f0f14}
       </div>
       <div class="settings-section">
         <div class="settings-section-title">Ranking Weights</div>
-        <div class="settings-section-desc">Each factor is independent (0–10). Set to 0 to ignore a factor completely.</div>
+        <div class="settings-section-desc">Each factor is independent (0–10). Set to 0 to ignore a factor completely. Changes save automatically.</div>
         <div style="margin-top:.75rem">
           <div class="weight-slider-row">
             <span class="weight-slider-label">Urgency</span>
@@ -1151,6 +1151,7 @@ html.dark .loading{background:#0f0f14}
             <span class="weight-slider-val" id="sw-staleness-val">3</span>
             <button class="weight-info-btn">i<div class="weight-tooltip">How long the task has been sitting untouched. Tasks not updated for 7+ days score highest. Helps surface forgotten tasks before they become urgent.</div></button>
           </div>
+          <button onclick="resetSmartWeights()" style="margin-top:.5rem;padding:.35rem .85rem;background:none;border:1px solid var(--border);border-radius:8px;font-family:var(--sans);font-size:.75rem;color:var(--muted);cursor:pointer">↺ Reset to defaults</button>
         </div>
       </div>
     </div>
@@ -2614,6 +2615,13 @@ function openEstimatePopover(id, e) {
   document.querySelectorAll('.estimate-popover.open').forEach(function(p){ p.classList.remove('open'); });
   var pop = document.getElementById('epop-'+id);
   if (pop) {
+    // position below the clicked pill using fixed positioning
+    var pill = e.currentTarget || e.target.closest('.estimate-pill');
+    if (pill) {
+      var rect = pill.getBoundingClientRect();
+      pop.style.top = (rect.bottom + 4) + 'px';
+      pop.style.left = rect.left + 'px';
+    }
     pop.classList.add('open');
     var inp = document.getElementById('epop-input-'+id);
     if (inp) { inp.focus(); inp.select(); }
@@ -2624,6 +2632,7 @@ function saveEstimatePill(id) {
   var t = tasks.find(function(x){ return x.id===id; }); if (!t) return;
   var inp = document.getElementById('epop-input-'+id);
   var val = inp ? parseInt(inp.value) : null;
+  if (val && val > 480) val = 480;
   t.estimate = (val && val > 0) ? val : null;
   t.updatedAt = Date.now();
   document.querySelectorAll('.estimate-popover.open').forEach(function(p){ p.classList.remove('open'); });
@@ -2641,6 +2650,15 @@ function clearEstimatePill(id) {
 document.addEventListener('click', function(e) {
   if (!e.target.closest('.estimate-pill')) {
     document.querySelectorAll('.estimate-popover.open').forEach(function(p){ p.classList.remove('open'); });
+  }
+  // toggle weight info tooltips on mobile
+  if (e.target.closest('.weight-info-btn')) {
+    var btn = e.target.closest('.weight-info-btn');
+    var isOpen = btn.classList.contains('tip-open');
+    document.querySelectorAll('.weight-info-btn.tip-open').forEach(function(b){ b.classList.remove('tip-open'); });
+    if (!isOpen) btn.classList.add('tip-open');
+  } else {
+    document.querySelectorAll('.weight-info-btn.tip-open').forEach(function(b){ b.classList.remove('tip-open'); });
   }
 });
 
@@ -2810,6 +2828,7 @@ function renderSmartView() {
       +'<td class="task-cell" style="max-width:280px">'
         +'<div style="display:flex;align-items:flex-start;gap:6px">'
           +'<span class="'+pDotClass+'" style="margin-top:5px"></span>'
+          +(hasSubs?'<button class="expand-btn'+(expandedIds.has(t.id)?' open':'')+'" onclick="toggleExpandSmart('+t.id+')" title="Toggle subtasks"><svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M4 2l4 4-4 4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></button>':'<span style="width:22px;display:inline-block"></span>')
           +'<div style="min-width:0;flex:1">'
             +'<div style="display:flex;align-items:center;gap:5px;flex-wrap:wrap">'
               +'<span class="task-name" style="'+doneStyle+'">'+escapeHTML(t.name)+'</span>'
@@ -2858,6 +2877,11 @@ function renderSmartView() {
 function markCompleteSmart(id) {
   markComplete(id);
   setTimeout(function(){ renderSmartView(); }, 350);
+}
+
+function toggleExpandSmart(id) {
+  if (expandedIds.has(id)) expandedIds.delete(id); else expandedIds.add(id);
+  renderSmartView();
 }
 
 function updateStatusSmart(id, val) {
@@ -2911,6 +2935,14 @@ function updateSmartWeight(key, val) {
   saveSmartWeights();
   renderSmartWeightSliders();
   if (smartView) renderSmartView();
+}
+
+function resetSmartWeights() {
+  smartWeights = { urgency: 8, priority: 7, effort: 5, momentum: 4, staleness: 3 };
+  saveSmartWeights();
+  renderSmartWeightSliders();
+  if (smartView) renderSmartView();
+  showToast('Weights reset to defaults');
 }
 
 function renderSmartWeightSliders() {
@@ -3584,6 +3616,18 @@ function toggleSettings() {
   showingNotes = false;
   var ns = document.getElementById('note-search'); if (ns) ns.value = '';
   document.body.style.overflow = '';
+  // exit smart view if active
+  if (smartView) {
+    smartView = false;
+    document.getElementById('smart-view').style.display = 'none';
+    document.getElementById('smart-view-btn').classList.remove('active');
+    document.getElementById('list-view-btn').classList.add('active');
+    document.getElementById('list-view-elements').style.display = 'block';
+    var summary = document.querySelector('.summary');
+    if (summary) summary.style.display = '';
+    var pageHeader = document.querySelector('.page-header .header-actions');
+    if (pageHeader) pageHeader.style.visibility = '';
+  }
   showingSettings = !showingSettings;
   document.getElementById('dashboard-view').style.display = showingSettings ? 'none' : 'block';
   document.getElementById('settings-view').style.display  = showingSettings ? 'block' : 'none';
@@ -3598,7 +3642,7 @@ function toggleSettings() {
     render();
   } else {
     loadFocusSettings();
-  renderSettingsPage();
+    renderSettingsPage();
   }
   closeSidebar();
   updateTopbar();
@@ -3995,7 +4039,7 @@ function saveTask() {
     priority:  document.getElementById('f-priority').value,
     status:    document.getElementById('f-status').value,
     assignee:  document.getElementById('f-assignee').value.trim(),
-    estimate:  parseInt(document.getElementById('f-estimate').value)||null,
+    estimate:  Math.min(parseInt(document.getElementById('f-estimate').value)||0, 480) || null,
     subtasks:  modalSubtasks.slice(),
     labels:    modalLabels.slice(),
     recur:     recurData,
