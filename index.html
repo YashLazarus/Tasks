@@ -555,6 +555,7 @@ html.dark .focus-chip{background:#2d2b55;border-color:rgba(139,132,255,.8);box-s
 .chip-status-dot.idle{background:rgba(255,255,255,.2)}
 .chip-status-dot.running{background:#34d399;box-shadow:0 0 0 2px rgba(52,211,153,.3);animation:ft-blink 2s infinite}
 .chip-status-dot.paused{background:#fbbf24}
+.chip-status-dot.pending{background:#f97316;box-shadow:0 0 0 2px rgba(249,115,22,.3);animation:ft-blink 2s infinite}
 @keyframes ft-blink{0%,100%{opacity:1}50%{opacity:.4}}
 
 /* Expanded widget */
@@ -1816,6 +1817,7 @@ var trash = []; // { id, type:'task'|'note', data:{}, trashedAt, reason:'manual'
 var recurState = {}; // { "groupId|YYYY-MM-DD": "active"|"done"|"deleted" } — source of truth for recurring instances
 var trashShowAll = false; // whether to show all trash items or just first 15
 var _confirmButtons = null; // active confirm dialog buttons
+var _confirmNoBackdropClose = false;
 var boardView = false; // true = board view, false = list view
 var kColOrder = []; // column order for kanban
 var kColHidden = {}; // hidden columns { statusId: true }
@@ -2338,7 +2340,7 @@ function renderTrash() {
 }
 
 // ── CONFIRM DIALOG ───────────────────────────────────────
-function showConfirm(title, desc, buttons, useHTML) {
+function showConfirm(title, desc, buttons, useHTML, noBackdropClose) {
   document.getElementById('confirm-title').textContent = title;
   if (useHTML) {
     document.getElementById('confirm-desc').innerHTML = desc;
@@ -2352,23 +2354,25 @@ function showConfirm(title, desc, buttons, useHTML) {
     return '<button class="confirm-btn ' + b.cls + '" onclick="handleConfirmBtn(' + i + ')"' + extraStyle + '>' + b.label + '</button>';
   }).join('');
   _confirmButtons = buttons;
+  _confirmNoBackdropClose = !!noBackdropClose;
   document.getElementById('confirm-backdrop').classList.add('open');
 }
 
 function handleConfirmBtn(idx) {
-  // grab the action BEFORE closeConfirm nulls _confirmButtons
   var btn = _confirmButtons && _confirmButtons[idx];
   closeConfirm();
   if (btn && btn.action) btn.action();
 }
 
 function handleBackdropConfirm(e) {
+  if (_confirmNoBackdropClose) return;
   if (e.target === document.getElementById('confirm-backdrop')) closeConfirm();
 }
 
 function closeConfirm() {
   document.getElementById('confirm-backdrop').classList.remove('open');
   _confirmButtons = null;
+  _confirmNoBackdropClose = false;
 }
 
 // Color pickers state
@@ -5578,6 +5582,12 @@ function openFocusWidget() {
   if (widget) widget.classList.add('open');
   updateFocusWidget();
   initFocusDrag();
+  // If there's a pending unlogged session — show prompt immediately
+  if (_focusPendingLog) {
+    setTimeout(function(){
+      showFocusTimerAwayPrompt('ended', _focusPendingLog.duration, _focusPendingLog.duration);
+    }, 200);
+  }
 }
 
 function minimiseFocusWidget() {
@@ -5832,7 +5842,7 @@ function showFocusTimerAwayPrompt(reason, suggestedMins, maxMins) {
   showConfirm(
     '⏱ Log focus time?',
     msg + '<br><div style="margin-top:10px;display:flex;align-items:center;gap:8px">'
-      +'<input type="number" id="focus-log-input" value="'+capturedSuggested+'" min="1" max="'+capturedMax+'" style="width:70px;padding:5px 8px;border:1px solid var(--border);border-radius:8px;font-family:var(--mono);font-size:.9rem;background:var(--surface2);color:var(--text);outline:none">'
+      +'<input type="number" id="focus-log-input" value="'+capturedSuggested+'" min="1" max="'+capturedMax+'" autocomplete="off" inputmode="numeric" style="width:70px;padding:5px 8px;border:1px solid var(--border);border-radius:8px;font-family:var(--mono);font-size:.9rem;background:var(--surface2);color:var(--text);outline:none">'
       +'<span style="font-family:var(--mono);font-size:.8rem;color:var(--muted)">min (max '+capturedMax+')</span>'
     +'</div>',
     [
@@ -5853,7 +5863,8 @@ function showFocusTimerAwayPrompt(reason, suggestedMins, maxMins) {
         updateFocusWidget(); updateFocusChip();
       }}
     ],
-    true // useHTML for the input field
+    true, // useHTML for the input field
+    true  // noBackdropClose — too important to dismiss accidentally
   );
   // focus the input after dialog opens
   setTimeout(function(){
@@ -6097,16 +6108,21 @@ function updateFocusChip() {
   }
   if (meta) {
     var s = focusTodaySessions.filter(function(x){ return x.countsFocusTime !== false; }).length;
-    meta.innerHTML = focusState==='idle'    ? 'tap to open'
-                   : focusState==='running' ? '🍅 <span class="hi">'+s+'</span> · session '+(s+1)
-                   : focusState==='paused'  ? 'paused'
+    meta.innerHTML = _focusPendingLog      ? '⏱ tap to log session'
+                   : focusState==='idle'   ? 'tap to open'
+                   : focusState==='running'? '🍅 <span class="hi">'+s+'</span> · session '+(s+1)
+                   : focusState==='paused' ? 'paused'
                    : '🍅 <span class="hi">'+s+'</span> done';
   }
   if (statusDot) {
-    statusDot.className = 'chip-status-dot '+(focusState==='running'?'running':focusState==='paused'?'paused':'idle');
+    statusDot.className = 'chip-status-dot '+(_focusPendingLog?'pending':focusState==='running'?'running':focusState==='paused'?'paused':'idle');
   }
   // chip glow class
   chip.className = 'focus-chip'+(focusState==='running'?' running':'');
+  // show chip if pending session needs logging
+  if (_focusPendingLog && chip.style.display === 'none') {
+    chip.style.display = 'flex';
+  }
 }
 
 // ── DRAG ─────────────────────────────────────────────────
