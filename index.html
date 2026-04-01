@@ -1714,27 +1714,35 @@ function refreshAuthToken() {
     headers: {'Content-Type':'application/x-www-form-urlencoded'},
     body: 'grant_type=refresh_token&refresh_token=' + encodeURIComponent(currentUser.refreshToken)
   })
-  .then(function(r){ return r.json(); })
-  .then(function(data) {
+  .then(function(r){ return r.json().then(function(data){ return { status: r.status, data: data }; }); })
+  .then(function(res) {
+    var data = res.data;
     if (data.id_token) {
-      currentUser.idToken    = data.id_token;
+      currentUser.idToken      = data.id_token;
       currentUser.refreshToken = data.refresh_token;
-      currentUser.expiresAt  = Date.now() + (parseInt(data.expires_in) * 1000);
+      currentUser.expiresAt    = Date.now() + (parseInt(data.expires_in) * 1000);
       saveCredentials();
-      return true;
+      return 'ok';
     }
-    return false;
+    // Firebase returned an error — check if it's an auth error or something else
+    var errCode = data.error && data.error.message;
+    if (errCode === 'TOKEN_EXPIRED' || errCode === 'INVALID_REFRESH_TOKEN' ||
+        errCode === 'USER_DISABLED' || errCode === 'USER_NOT_FOUND' ||
+        res.status === 400) {
+      return 'auth_error'; // genuine auth failure — needs re-login
+    }
+    return 'network_error'; // Firebase error but not auth-related
   })
-  .catch(function(){ return false; });
+  .catch(function(){ return 'network_error'; }); // network timeout, offline, etc
 }
 
 function ensureValidToken() {
-  if (!currentUser) return Promise.resolve(false);
-  // refresh if token expires within 5 minutes
-  if (currentUser.expiresAt && Date.now() > currentUser.expiresAt - 300000) {
-    return refreshAuthToken();
+  if (!currentUser) return Promise.resolve('auth_error');
+  // token still valid — no refresh needed
+  if (currentUser.expiresAt && Date.now() < currentUser.expiresAt - 300000) {
+    return Promise.resolve('ok');
   }
-  return Promise.resolve(true);
+  return refreshAuthToken();
 }
 
 function renderAccountSection() {
@@ -2387,7 +2395,7 @@ function focusSync() {
   var url = getFirebaseUrl();
   if (!url) return;
   ensureValidToken().then(function(valid) {
-    if (!valid) { setSyncStatus('error', 'Session error — please reload'); return; }
+    if (valid !== 'ok') { setSyncStatus('error', valid === 'auth_error' ? 'Session expired — tap to sign in again' : 'No connection — working offline'); return; }
     setSyncStatus('syncing', 'Syncing...');
     fetch(getFirebaseUrl())
     .then(function(r){
@@ -2470,9 +2478,9 @@ function loadFromCloud() {
 
   setSyncStatus('syncing', 'Syncing...');
   // ensure token is valid before fetching
-  ensureValidToken().then(function(valid) {
-    if (!valid) {
-      // token refresh failed — fall back to local data, show soft prompt
+  ensureValidToken().then(function(result) {
+    if (result === 'auth_error') {
+      // genuine auth failure — session invalid, needs re-login
       tasks    = localTasks;
       statuses = localStatuses || JSON.parse(JSON.stringify(DEFAULT_STATUSES));
       labels   = localLabels;
@@ -2486,10 +2494,21 @@ function loadFromCloud() {
         syncEl.style.cursor = 'pointer';
         syncEl.onclick = function(){ syncEl.onclick=null; syncEl.style.cursor=''; signOut(); };
       }
-      // suppress cloud saves while token is invalid
-      var _origSaveTimer = saveTimer;
       clearTimeout(saveTimer);
       saveTimer = null;
+      init();
+      return;
+    }
+    if (result === 'network_error') {
+      // network failure — load local data silently, work offline
+      tasks    = localTasks;
+      statuses = localStatuses || JSON.parse(JSON.stringify(DEFAULT_STATUSES));
+      labels   = localLabels;
+      notes    = localNotes;
+      document.getElementById('loading').style.display = 'none';
+      var aw4 = document.getElementById('app-wrapper');
+      if (aw4) aw4.style.display = 'contents';
+      setSyncStatus('error', 'No connection — working offline');
       init();
       return;
     }
@@ -2572,12 +2591,14 @@ function saveToCloud() {
   .catch(function(err) {
     if (err.message === 'TOKEN_EXPIRED') {
       // refresh token and retry once
-      return refreshAuthToken().then(function(ok) {
-        if (!ok) {
+      return refreshAuthToken().then(function(result) {
+        if (result !== 'ok') {
           // soft failure — don't hard logout, just show error
-          setSyncStatus('error', 'Session expired — tap to sign in again');
-          document.getElementById('sync-status').style.cursor = 'pointer';
-          document.getElementById('sync-status').onclick = function(){ signOut(); };
+          setSyncStatus('error', result === 'auth_error' ? 'Session expired — tap to sign in again' : 'No connection — save failed');
+          if (result === 'auth_error') {
+            document.getElementById('sync-status').style.cursor = 'pointer';
+            document.getElementById('sync-status').onclick = function(){ signOut(); };
+          }
           return;
         }
         return doSave(currentUser.idToken);
@@ -2919,7 +2940,7 @@ function logManualSession(t) {
     allFocusSessions.push(session);
     if (currentUser) {
       ensureValidToken().then(function(valid){
-        if (!valid) return;
+        if (valid !== 'ok') return;
         fetch(FIREBASE_DB_URL+'/users/'+currentUser.uid+'/focusSessions/'+session.id+'.json?auth='+currentUser.idToken, {
           method: 'PUT',
           headers: {'Content-Type':'application/json'},
@@ -5707,7 +5728,9 @@ function focusTick_fn() {
     if (focusSettings.sound) playFocusSound();
     updateFocusWidget();
     updateFocusChip();
-    showFocusTimerAwayPrompt('ended', focusSettings.duration, focusSettings.duration);
+    if (!document.getElementById('confirm-backdrop').classList.contains('open')) {
+      showFocusTimerAwayPrompt('ended', focusSettings.duration, focusSettings.duration);
+    }
     return;
   }
   updateFocusWidget();
@@ -5818,11 +5841,16 @@ document.addEventListener('visibilitychange', function() {
         updateFocusWidget();
         updateFocusChip();
         if (focusSettings.sound) playFocusSound();
-        showFocusTimerAwayPrompt('ended', focusSettings.duration, focusSettings.duration);
+        if (!document.getElementById('confirm-backdrop').classList.contains('open')) {
+          showFocusTimerAwayPrompt('ended', focusSettings.duration, focusSettings.duration);
+        }
       }
       // else timer still running — wall clock already updated focusElapsed
     } else if (focusState === 'done' && _focusPendingLog) {
-      showFocusTimerAwayPrompt('ended', _focusPendingLog.duration, _focusPendingLog.duration);
+      // only show prompt if no confirm dialog already open
+      if (!document.getElementById('confirm-backdrop').classList.contains('open')) {
+        showFocusTimerAwayPrompt('ended', _focusPendingLog.duration, _focusPendingLog.duration);
+      }
     }
   }
 });
@@ -5842,13 +5870,13 @@ function showFocusTimerAwayPrompt(reason, suggestedMins, maxMins) {
   showConfirm(
     '⏱ Log focus time?',
     msg + '<br><div style="margin-top:10px;display:flex;align-items:center;gap:8px">'
-      +'<input type="number" id="focus-log-input" value="'+capturedSuggested+'" min="1" max="'+capturedMax+'" autocomplete="off" inputmode="numeric" style="width:70px;padding:5px 8px;border:1px solid var(--border);border-radius:8px;font-family:var(--mono);font-size:.9rem;background:var(--surface2);color:var(--text);outline:none">'
-      +'<span style="font-family:var(--mono);font-size:.8rem;color:var(--muted)">min (max '+capturedMax+')</span>'
+      +'<input type="number" id="focus-log-input" value="'+capturedSuggested+'" min="1" max="480" autocomplete="off" inputmode="numeric" style="width:70px;padding:5px 8px;border:1px solid var(--border);border-radius:8px;font-family:var(--mono);font-size:.9rem;background:var(--surface2);color:var(--text);outline:none">'
+      +'<span style="font-family:var(--mono);font-size:.8rem;color:var(--muted)">min</span>'
     +'</div>',
     [
       { label: 'Log', cls: 'warning', action: function() {
         var inp = document.getElementById('focus-log-input');
-        var custom = inp ? Math.min(Math.max(parseInt(inp.value)||capturedSuggested, 1), capturedMax) : capturedSuggested;
+        var custom = inp ? Math.min(Math.max(parseInt(inp.value)||capturedSuggested, 1), 480) : capturedSuggested;
         logFocusSession(custom, focusPauses||0, true);
         _focusPendingLog = null;
         focusState = 'idle'; focusElapsed = 0; focusPauses = 0;
@@ -5901,7 +5929,7 @@ function logFocusSession(actualMins, pauses, completed) {
   // Save to Firebase silently with valid token
   if (currentUser) {
     ensureValidToken().then(function(valid) {
-      if (!valid) return;
+      if (valid !== 'ok') return;
       var url = 'https://tasks-aec3a-default-rtdb.firebaseio.com/users/'+currentUser.uid+'/focusSessions/'+session.id+'.json?auth='+currentUser.idToken;
       fetch(url, { method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify(session) }).catch(function(){});
     });
@@ -5912,7 +5940,7 @@ function logFocusSession(actualMins, pauses, completed) {
 function fetchFocusSessions() {
   if (!currentUser) return Promise.resolve();
   return ensureValidToken().then(function(valid) {
-    if (!valid) return;
+    if (valid !== 'ok') return;
     var url = FIREBASE_DB_URL + '/users/' + currentUser.uid + '/focusSessions.json?auth=' + currentUser.idToken;
     return fetch(url)
       .then(function(r){ return r.json(); })
