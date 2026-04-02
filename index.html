@@ -1552,7 +1552,14 @@ function getFirebaseUrl() {
 function loadCredentials() {
   try {
     var saved = localStorage.getItem('auth-user');
-    if (saved) currentUser = JSON.parse(saved);
+    if (saved) {
+      currentUser = JSON.parse(saved);
+      // if expiresAt missing (old account or partial clear) — assume valid for 1 hour
+      if (currentUser && !currentUser.expiresAt) {
+        currentUser.expiresAt = Date.now() + 3600000;
+        saveCredentials(); // persist the fallback so it survives next open
+      }
+    }
   } catch(e) {}
 }
 
@@ -1563,6 +1570,7 @@ function saveCredentials() {
 function clearCredentials() {
   currentUser = null;
   try { localStorage.removeItem('auth-user'); } catch(e) {}
+  try { localStorage.removeItem('auth-email'); } catch(e) {}
 }
 
 // ── AUTH ─────────────────────────────────────────────────
@@ -1572,7 +1580,25 @@ function showAuthScreen() {
   var aw = document.getElementById('app-wrapper');
   if (aw) aw.style.display = 'none';
   document.getElementById('auth-error').className = 'auth-error';
-  setTimeout(function(){ document.getElementById('auth-email').focus(); }, 100);
+  // pre-fill email if we have a cached one — returning user
+  try {
+    var cachedEmail = localStorage.getItem('auth-email');
+    var emailEl = document.getElementById('auth-email');
+    if (cachedEmail && emailEl) {
+      emailEl.value = cachedEmail;
+      // show friendly message — not a fresh logout
+      var errEl = document.getElementById('auth-error');
+      if (errEl) {
+        errEl.textContent = 'Your session expired. Please sign in again.';
+        errEl.className = 'auth-error show';
+      }
+      setTimeout(function(){ document.getElementById('auth-password').focus(); }, 100);
+    } else {
+      setTimeout(function(){ document.getElementById('auth-email').focus(); }, 100);
+    }
+  } catch(e) {
+    setTimeout(function(){ document.getElementById('auth-email').focus(); }, 100);
+  }
 }
 
 function hideAuthScreen() {
@@ -1667,6 +1693,12 @@ function authSubmit() {
       expiresAt:    Date.now() + (parseInt(data.expiresIn) * 1000)
     };
     saveCredentials();
+    // cache email separately — survives localStorage partial clears
+    try { localStorage.setItem('auth-email', data.email); } catch(e) {}
+    // request persistent storage — prevents Android from clearing PWA data
+    if (navigator.storage && navigator.storage.persist) {
+      navigator.storage.persist();
+    }
     hideAuthScreen();
     loadFromCloud();
   })
@@ -2460,7 +2492,7 @@ setInterval(function() {
   if (_lastSyncedAt) {
     var mins = Math.floor((Date.now() - _lastSyncedAt) / 60000);
     var dot = document.getElementById('sync-dot');
-    if (dot && dot.className.indexOf('synced') >= 0) {
+    if (dot && dot.className === 'sync-dot synced') {
       var txt = document.getElementById('sync-text');
       if (txt) txt.textContent = mins <= 0 ? 'Synced just now' : 'Synced · ' + mins + 'm ago';
     }
@@ -2470,11 +2502,11 @@ function setSyncStatus(state, text) {
   var dot = document.getElementById('sync-dot');
   var txt = document.getElementById('sync-text');
   if (dot) dot.className = 'sync-dot ' + state;
-  if (txt) txt.textContent = text;
   if (state === 'synced') {
     _lastSyncedAt = Date.now();
-    // show "just now" immediately, interval will update to "X min ago"
     if (txt) txt.textContent = 'Synced just now';
+  } else {
+    if (txt) txt.textContent = text;
   }
 }
 
@@ -6037,6 +6069,10 @@ function taskTotalMinsToday() {
 }
 
 function updateFocusWidget() {
+  // refresh today's sessions in case date changed (midnight crossover)
+  var today = padDate(new Date());
+  focusTodaySessions = allFocusSessions.filter(function(s){ return s.date === today; });
+
   var widget = document.getElementById('focus-widget');
   if (!widget || !widget.classList.contains('open')) return;
 
