@@ -2427,10 +2427,10 @@ function focusSync() {
         renderSettingsPage();
         updateNotesCount();
         if (boardView) { initKColOrder(); renderBoardLabelFilters(); }
-        fetchFocusSessions();
       } else {
         setSyncStatus('synced', 'Synced');
       }
+      fetchFocusSessions(); // always sync sessions regardless of task data state
     })
     .catch(function(){ setSyncStatus('error', 'Sync failed'); });
   });
@@ -2438,17 +2438,44 @@ function focusSync() {
 
 // Sync when app comes to foreground — debounced to prevent rapid firing
 var focusSyncTimer = null;
+var _lastSyncedAt = null; // timestamp of last successful sync
+
 document.addEventListener('visibilitychange', function() {
   if (document.visibilityState === 'visible' && currentUser) {
     clearTimeout(focusSyncTimer);
     focusSyncTimer = setTimeout(focusSync, 500);
   }
 });
+
+// Periodic sync every 60s — keeps both devices in parity when both open simultaneously
+setInterval(function() {
+  if (currentUser && document.visibilityState === 'visible') {
+    clearTimeout(focusSyncTimer);
+    focusSyncTimer = setTimeout(focusSync, 500);
+  }
+}, 60000);
+
+// Update "X min ago" display every 30s
+setInterval(function() {
+  if (_lastSyncedAt) {
+    var mins = Math.floor((Date.now() - _lastSyncedAt) / 60000);
+    var dot = document.getElementById('sync-dot');
+    if (dot && dot.className.indexOf('synced') >= 0) {
+      var txt = document.getElementById('sync-text');
+      if (txt) txt.textContent = mins <= 0 ? 'Synced just now' : 'Synced · ' + mins + 'm ago';
+    }
+  }
+}, 30000);
 function setSyncStatus(state, text) {
   var dot = document.getElementById('sync-dot');
   var txt = document.getElementById('sync-text');
   if (dot) dot.className = 'sync-dot ' + state;
   if (txt) txt.textContent = text;
+  if (state === 'synced') {
+    _lastSyncedAt = Date.now();
+    // show "just now" immediately, interval will update to "X min ago"
+    if (txt) txt.textContent = 'Synced just now';
+  }
 }
 
 function loadFromCloud() {
@@ -5606,7 +5633,10 @@ function openFocusWidget() {
   // If there's a pending unlogged session — show prompt immediately
   if (_focusPendingLog) {
     setTimeout(function(){
-      showFocusTimerAwayPrompt('ended', _focusPendingLog.duration, _focusPendingLog.duration);
+      // don't stack on top of another confirm dialog
+      if (!document.getElementById('confirm-backdrop').classList.contains('open')) {
+        showFocusTimerAwayPrompt('ended', _focusPendingLog.duration, _focusPendingLog.duration);
+      }
     }, 200);
   }
 }
@@ -5856,8 +5886,6 @@ document.addEventListener('visibilitychange', function() {
 });
 
 function showFocusTimerAwayPrompt(reason, suggestedMins, maxMins) {
-  // For paused sessions, suggestedMins comes in as seconds — convert to minutes
-  if (reason === 'paused') suggestedMins = Math.max(1, Math.round(suggestedMins / 60));
   var msg = reason === 'ended'
     ? 'Your ' + maxMins + ' min focus session ended. How much time do you want to log?'
     : reason === 'stopped'
