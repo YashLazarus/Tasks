@@ -3335,48 +3335,57 @@ function startNoteMic() {
   noteSpeechRecognition.continuous = true;
   noteSpeechRecognition.interimResults = true;
 
+  var finalTranscriptSoFar = ''; // tracks what's already been committed to the note
+
   noteSpeechRecognition.onresult = function(e) {
-    var interim = '';
-    var final = '';
-    for (var i = e.resultIndex; i < e.results.length; i++) {
+    var interimTranscript = '';
+    var newFinal = '';
+
+    for (var i = 0; i < e.results.length; i++) {
       if (e.results[i].isFinal) {
-        final += e.results[i][0].transcript;
+        var t = e.results[i][0].transcript;
+        // only append if this final segment is new (not already committed)
+        if (finalTranscriptSoFar.indexOf(t) === -1 || finalTranscriptSoFar.length === 0) {
+          newFinal += t;
+          finalTranscriptSoFar += t;
+        }
       } else {
-        interim += e.results[i][0].transcript;
+        interimTranscript += e.results[i][0].transcript;
       }
     }
+
     var body = document.getElementById('note-body');
     if (!body) return;
-    // remove previous interim placeholder
+
+    // remove previous interim span
     var ph = body.querySelector('.note-interim');
     if (ph) ph.remove();
-    // append final text
-    if (final) {
-      // add line break before first dictation if body has content
+
+    // append only genuinely new final text
+    if (newFinal) {
       if (body.innerText.trim() && !body.dataset.dictating) {
         body.insertAdjacentHTML('beforeend', '<br>');
         body.dataset.dictating = '1';
       } else if (!body.dataset.dictating) {
         body.dataset.dictating = '1';
       }
-      // safe text insertion — preserves existing rich text
-      var textNode = document.createTextNode(final);
-      body.appendChild(textNode);
-      // auto-generate title from first sentence if empty
+      body.appendChild(document.createTextNode(newFinal));
+      // auto-generate title from first sentence if title empty
       var titleEl = document.getElementById('note-title');
       if (titleEl && !titleEl.value.trim()) {
-        var firstSentence = final.split(/[.!?]/)[0].trim();
+        var firstSentence = newFinal.split(/[.!?]/)[0].trim();
         if (firstSentence.length > 3 && firstSentence.length <= 60) {
           titleEl.value = firstSentence;
         }
       }
     }
-    // show interim as greyed placeholder
-    if (interim) {
+
+    // show interim as live greyed preview
+    if (interimTranscript) {
       var span = document.createElement('span');
       span.className = 'note-interim';
       span.style.cssText = 'color:var(--muted);opacity:.6';
-      span.textContent = interim;
+      span.textContent = interimTranscript;
       body.appendChild(span);
     }
   };
