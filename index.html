@@ -3357,59 +3357,37 @@ function startNoteMic() {
   noteSpeechRecognition = new SpeechRecognition();
   noteSpeechRecognition.lang = 'en-US';
   noteSpeechRecognition.continuous = true;
-  noteSpeechRecognition.interimResults = true;
-
-  var lastProcessedIndex = -1; // track last final result index processed
+  noteSpeechRecognition.interimResults = false; // final results only — prevents repetition on Android
 
   noteSpeechRecognition.onresult = function(e) {
-    var interimTranscript = '';
+    // only process new final results from this event
     var newFinal = '';
-
-    for (var i = 0; i < e.results.length; i++) {
+    for (var i = e.resultIndex; i < e.results.length; i++) {
       if (e.results[i].isFinal) {
-        // only process final results we haven't committed yet
-        if (i > lastProcessedIndex) {
-          newFinal += e.results[i][0].transcript;
-          lastProcessedIndex = i;
-        }
-      } else {
-        interimTranscript += e.results[i][0].transcript;
+        newFinal += e.results[i][0].transcript;
       }
     }
+    if (!newFinal) return;
 
     var body = document.getElementById('note-body');
     if (!body) return;
 
-    // remove previous interim span
-    var ph = body.querySelector('.note-interim');
-    if (ph) ph.remove();
-
-    // append only genuinely new final text
-    if (newFinal) {
-      if (body.innerText.trim() && !body.dataset.dictating) {
-        body.insertAdjacentHTML('beforeend', '<br>');
-        body.dataset.dictating = '1';
-      } else if (!body.dataset.dictating) {
-        body.dataset.dictating = '1';
-      }
-      body.appendChild(document.createTextNode(newFinal));
-      // auto-generate title from first sentence if title empty
-      var titleEl = document.getElementById('note-title');
-      if (titleEl && !titleEl.value.trim()) {
-        var firstSentence = newFinal.split(/[.!?]/)[0].trim();
-        if (firstSentence.length > 3 && firstSentence.length <= 60) {
-          titleEl.value = firstSentence;
-        }
-      }
+    // add line break before dictation if note already has content
+    if (body.innerText.trim() && !body.dataset.dictating) {
+      body.insertAdjacentHTML('beforeend', '<br>');
+      body.dataset.dictating = '1';
+    } else if (!body.dataset.dictating) {
+      body.dataset.dictating = '1';
     }
+    body.appendChild(document.createTextNode(newFinal));
 
-    // show interim as live greyed preview
-    if (interimTranscript) {
-      var span = document.createElement('span');
-      span.className = 'note-interim';
-      span.style.cssText = 'color:var(--muted);opacity:.6';
-      span.textContent = interimTranscript;
-      body.appendChild(span);
+    // auto-generate title from first sentence if title empty
+    var titleEl = document.getElementById('note-title');
+    if (titleEl && !titleEl.value.trim()) {
+      var firstSentence = newFinal.split(/[.!?]/)[0].trim();
+      if (firstSentence.length > 3 && firstSentence.length <= 60) {
+        titleEl.value = firstSentence;
+      }
     }
   };
 
@@ -3417,9 +3395,7 @@ function startNoteMic() {
     if (e.error !== 'no-speech') stopNoteMic();
   };
   noteSpeechRecognition.onend = function() {
-    // restart if still active (continuous mode can stop on silence)
     if (noteMicActive) {
-      lastProcessedIndex = -1; // reset index — new session starts from 0
       try { noteSpeechRecognition.start(); } catch(e) { stopNoteMic(); }
     }
   };
