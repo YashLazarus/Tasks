@@ -655,6 +655,32 @@ html.dark .focus-widget{box-shadow:0 12px 40px rgba(0,0,0,.4),0 2px 8px rgba(0,0
 .recur-row input[type=number]{width:70px}
 .recur-badge{display:inline-flex;align-items:center;gap:4px;font-family:var(--mono);font-size:.68rem;font-weight:500;padding:2px 8px;border-radius:20px;background:rgba(13,148,136,0.12);color:#0d9488;white-space:nowrap;margin-top:2px}
 .estimate-pill{display:inline-flex;align-items:center;gap:3px;font-family:var(--mono);font-size:.67rem;color:var(--muted);background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:1px 6px;cursor:pointer;transition:border-color .15s,color .15s;white-space:nowrap}
+/* ── AI INPUT ── */
+.ai-input-box{background:linear-gradient(135deg,rgba(99,102,241,.08),rgba(139,92,246,.08));border:1.5px solid rgba(99,102,241,.25);border-radius:12px;padding:.85rem 1rem;margin-bottom:1rem;position:relative;transition:border-color .2s}
+.ai-input-box:focus-within{border-color:rgba(99,102,241,.6)}
+.ai-input-box-label{display:flex;align-items:center;gap:6px;font-size:.72rem;font-weight:600;color:#6366f1;margin-bottom:.5rem;letter-spacing:.03em}
+.ai-input-box-label svg{opacity:.8}
+.ai-input-row{display:flex;align-items:flex-end;gap:8px}
+.ai-input-textarea{flex:1;background:none;border:none;outline:none;font-family:var(--sans);font-size:.88rem;color:var(--text);resize:none;line-height:1.5;min-height:38px;max-height:120px;overflow-y:auto;padding:0}
+.ai-input-textarea::placeholder{color:var(--muted);opacity:.7}
+.ai-mic-btn{width:34px;height:34px;border-radius:50%;border:1.5px solid rgba(99,102,241,.3);background:none;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;transition:all .15s;color:#6366f1}
+.ai-mic-btn:hover{background:rgba(99,102,241,.1);border-color:#6366f1}
+.ai-mic-btn.recording{background:#ef4444;border-color:#ef4444;color:#fff;animation:mic-pulse 1s infinite}
+@keyframes mic-pulse{0%,100%{box-shadow:0 0 0 0 rgba(239,68,68,.4)}50%{box-shadow:0 0 0 6px rgba(239,68,68,0)}}
+.ai-parse-btn{padding:.35rem .85rem;background:#6366f1;color:#fff;border:none;border-radius:8px;font-family:var(--sans);font-size:.75rem;font-weight:600;cursor:pointer;white-space:nowrap;transition:opacity .15s}
+.ai-parse-btn:hover{opacity:.85}
+.ai-parse-btn:disabled{opacity:.5;cursor:default}
+.ai-parse-btn.loading{opacity:.7}
+.ai-no-key{font-size:.75rem;color:var(--muted);line-height:1.4}
+.ai-no-key a{color:#6366f1;text-decoration:none}
+.ai-no-key a:hover{text-decoration:underline}
+.ai-field-flash{animation:ai-flash .4s ease}
+@keyframes ai-flash{0%{background:rgba(99,102,241,.15)}100%{background:transparent}}
+/* Note mic button */
+.note-mic-btn{display:flex;align-items:center;gap:5px;padding:.3rem .7rem;border-radius:8px;border:1.5px solid rgba(99,102,241,.3);background:none;color:#6366f1;font-family:var(--sans);font-size:.75rem;font-weight:600;cursor:pointer;transition:all .15s}
+.note-mic-btn:hover{background:rgba(99,102,241,.08)}
+.note-mic-btn.recording{background:#ef4444;border-color:#ef4444;color:#fff;animation:mic-pulse 1s infinite}
+.note-mic-status{font-family:var(--mono);font-size:.65rem;color:var(--muted);margin-left:2px}
 .estimate-pill:hover{border-color:var(--accent);color:var(--accent)}
 .estimate-pill svg{opacity:.55;flex-shrink:0}
 .estimate-popover{position:fixed;background:var(--surface);border:1px solid var(--border2);border-radius:10px;padding:8px 10px;display:none;align-items:center;gap:8px;box-shadow:0 4px 16px rgba(0,0,0,.12);z-index:200;white-space:nowrap}
@@ -1157,6 +1183,23 @@ html.dark .loading{background:#0f0f14}
       </div>
     </div>
 
+    <!-- GROUP: AI FEATURES -->
+    <div class="settings-group">
+      <div class="settings-group-title">
+        <svg width="13" height="13" viewBox="0 0 13 13" fill="none"><path d="M6.5 1l1.1 2.2L10 4.1l-1.8 1.75.43 2.52L6.5 7.1 4.37 8.37l.43-2.52L3 4.1l2.4-.9L6.5 1z" fill="currentColor"/></svg>
+        AI Features
+      </div>
+      <div class="settings-section">
+        <div class="settings-section-title">Gemini API Key</div>
+        <div class="settings-section-desc">Required for AI task parsing. <a href="https://ai.google.dev" target="_blank" style="color:#6366f1;text-decoration:none">Get a free key at ai.google.dev</a> — the free tier is more than enough. Your key is stored locally and never sent to our servers.</div>
+        <div style="margin-top:.75rem;display:flex;gap:8px;align-items:center">
+          <input type="password" id="gemini-key-input" placeholder="AIzaSy..." style="flex:1;padding:.5rem .75rem;border:1px solid var(--border);border-radius:8px;font-family:var(--mono);font-size:.78rem;background:var(--surface2);color:var(--text);outline:none" oninput="onGeminiKeyInput()">
+          <button onclick="saveGeminiKey()" style="padding:.5rem 1rem;background:#6366f1;color:#fff;border:none;border-radius:8px;font-family:var(--sans);font-size:.78rem;font-weight:600;cursor:pointer;white-space:nowrap">Save</button>
+        </div>
+        <div id="gemini-key-status" style="margin-top:.5rem;font-family:var(--mono);font-size:.7rem;color:var(--muted)"></div>
+      </div>
+    </div>
+
     <!-- GROUP: ACCOUNT -->
     <div class="settings-group">
       <div class="settings-group-title">
@@ -1168,8 +1211,6 @@ html.dark .loading{background:#0f0f14}
         <div id="sync-settings-status" style="margin-top:.75rem;font-family:var(--mono);font-size:.75rem;display:flex;align-items:center;gap:6px;color:var(--muted)"></div>
       </div>
     </div>
-
-    <!-- GROUP: FOCUS TIMER -->
     <div class="settings-group">
       <div class="settings-group-title">
         <svg width="13" height="13" viewBox="0 0 13 13" fill="none"><circle cx="6.5" cy="6.5" r="5" stroke="currentColor" stroke-width="1.3"/><path d="M6.5 3.5v3l2 1.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>
@@ -1287,6 +1328,11 @@ html.dark .loading{background:#0f0f14}
         <button class="note-tb-btn" id="tb-clear"  onclick="tbClearFormat()"           title="Clear formatting">
           <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M2 12l8-8M4 2l8 8M10 2l2 2-8 8H2v-2L10 2z" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>
         </button>
+        <span class="note-tb-sep" id="note-mic-sep"></span>
+        <button class="note-mic-btn" id="note-mic-btn" onclick="toggleNoteMic()" title="Voice input">
+          <svg width="13" height="13" viewBox="0 0 14 14" fill="none"><rect x="4" y="1" width="6" height="8" rx="3" stroke="currentColor" stroke-width="1.4"/><path d="M2 7a4 4 0 0 0 8 0M6 11v2" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
+          <span id="note-mic-label">Dictate</span>
+        </button>
       </div>
       <div class="note-editor-body" id="note-body" contenteditable="true" data-placeholder="Start writing..."></div>
       <div class="note-editor-footer">
@@ -1388,6 +1434,27 @@ html.dark .loading{background:#0f0f14}
 <div class="modal-backdrop" id="modal" onclick="handleBackdropClick(event)">
   <div class="modal">
     <div class="modal-title" id="modal-title">New Task</div>
+    <!-- AI INPUT BOX -->
+    <div class="ai-input-box" id="ai-task-box">
+      <div class="ai-input-box-label">
+        <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M6 1l1.2 2.4L10 4.2l-2 1.95.47 2.75L6 7.5 3.53 8.9 4 6.15 2 4.2l2.8-.8L6 1z" fill="currentColor"/></svg>
+        AI — describe your task naturally
+      </div>
+      <div id="ai-task-key-missing" style="display:none">
+        <div class="ai-no-key">Add a Gemini API key in <a href="#" onclick="toggleSettings();return false">Settings → AI Features</a> to enable AI task parsing.</div>
+      </div>
+      <div id="ai-task-input-area">
+        <div class="ai-input-row">
+          <textarea class="ai-input-textarea" id="ai-task-input" placeholder="e.g. call dentist tomorrow high priority 30 min" rows="1" oninput="this.style.height='auto';this.style.height=this.scrollHeight+'px'" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();parseTaskWithAI();}"></textarea>
+          <button class="ai-mic-btn" id="ai-task-mic" onclick="toggleTaskMic()" title="Speak your task">
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><rect x="4" y="1" width="6" height="8" rx="3" stroke="currentColor" stroke-width="1.4"/><path d="M2 7a4 4 0 0 0 8 0M6 11v2" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
+          </button>
+        </div>
+        <div style="display:flex;justify-content:flex-end;margin-top:6px">
+          <button class="ai-parse-btn" id="ai-parse-btn" onclick="parseTaskWithAI()">✨ Parse</button>
+        </div>
+      </div>
+    </div>
     <div class="form-row">
       <label>Task name *</label>
       <input type="text" id="f-name" placeholder="What needs to be done?" maxlength="100">
@@ -3067,6 +3134,300 @@ function switchToSmart() {
   updateTopbar();
 }
 
+// ── AI FEATURES ─────────────────────────────────────────
+var geminiKey = null;
+
+function loadGeminiKey() {
+  try { geminiKey = localStorage.getItem('gemini-api-key') || null; } catch(e) {}
+}
+
+function saveGeminiKey() {
+  var inp = document.getElementById('gemini-key-input');
+  if (!inp) return;
+  var key = inp.value.trim();
+  if (!key) {
+    geminiKey = null;
+    try { localStorage.removeItem('gemini-api-key'); } catch(e) {}
+    setGeminiKeyStatus('Key removed', 'var(--muted)');
+  } else {
+    geminiKey = key;
+    try { localStorage.setItem('gemini-api-key', key); } catch(e) {}
+    setGeminiKeyStatus('✓ Key saved', '#16a34a');
+  }
+  renderAITaskBox();
+}
+
+function onGeminiKeyInput() {
+  setGeminiKeyStatus('', '');
+}
+
+function setGeminiKeyStatus(msg, color) {
+  var el = document.getElementById('gemini-key-status');
+  if (el) { el.textContent = msg; el.style.color = color; }
+}
+
+function renderSettingsAI() {
+  var inp = document.getElementById('gemini-key-input');
+  if (inp && geminiKey) {
+    inp.value = geminiKey;
+    setGeminiKeyStatus('✓ Key saved', '#16a34a');
+  }
+}
+
+function renderAITaskBox() {
+  var missing = document.getElementById('ai-task-key-missing');
+  var area = document.getElementById('ai-task-input-area');
+  var mic = document.getElementById('ai-task-mic');
+  if (!missing || !area) return;
+  if (!geminiKey) {
+    missing.style.display = 'block';
+    area.style.display = 'none';
+  } else {
+    missing.style.display = 'none';
+    area.style.display = 'block';
+  }
+  // hide mic if speech not supported
+  if (mic && !('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+    mic.style.display = 'none';
+  }
+}
+
+// ── AI TASK PARSING ──────────────────────────────────────
+function parseTaskWithAI() {
+  var inp = document.getElementById('ai-task-input');
+  var btn = document.getElementById('ai-parse-btn');
+  if (!inp || !geminiKey) return;
+  var text = inp.value.trim();
+  if (!text) return;
+
+  if (btn) { btn.disabled = true; btn.textContent = '⏳ Parsing...'; }
+
+  var today = padDate(new Date());
+  var tomorrow = padDate(new Date(Date.now() + 86400000));
+  var prompt = 'Parse this task description into structured fields. Return ONLY valid JSON, no markdown, no explanation.\n\nToday is ' + today + '. Tomorrow is ' + tomorrow + '.\n\nInput: "' + text + '"\n\nReturn JSON with these fields (all optional except name):\n- name: string (task name, cleaned up)\n- due: string (YYYY-MM-DD format, null if not mentioned)\n- priority: "high" | "medium" | "low" (default "medium" if not mentioned)\n- estimate: number (minutes, null if not mentioned)\n- assignee: string (null if not mentioned)\n\nExamples:\n"call dentist tomorrow high priority 30 min" → {"name":"Call dentist","due":"' + tomorrow + '","priority":"high","estimate":30,"assignee":null}\n"team meeting friday with john" → {"name":"Team meeting","due":null,"priority":"medium","estimate":null,"assignee":"John"}';
+
+  fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=' + geminiKey, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      contents: [{ parts: [{ text: prompt }] }],
+      generationConfig: { temperature: 0.1, maxOutputTokens: 256 }
+    })
+  })
+  .then(function(r) { return r.json(); })
+  .then(function(data) {
+    if (btn) { btn.disabled = false; btn.textContent = '✨ Parse'; }
+    if (data.error) {
+      showToast('AI error: ' + (data.error.message || 'Unknown error'));
+      return;
+    }
+    var raw = data.candidates && data.candidates[0] && data.candidates[0].content &&
+              data.candidates[0].content.parts && data.candidates[0].content.parts[0].text;
+    if (!raw) { showToast('AI returned no result'); return; }
+    // strip markdown fences if present
+    raw = raw.replace(/```json|```/g, '').trim();
+    var parsed;
+    try { parsed = JSON.parse(raw); } catch(e) { showToast('Could not parse AI response'); return; }
+    applyAIParsedTask(parsed);
+    inp.value = '';
+    inp.style.height = 'auto';
+  })
+  .catch(function() {
+    if (btn) { btn.disabled = false; btn.textContent = '✨ Parse'; }
+    showToast('AI request failed — check your API key');
+  });
+}
+
+function applyAIParsedTask(parsed) {
+  var fields = [
+    { id: 'f-name',     val: parsed.name,     type: 'text'   },
+    { id: 'f-due',      val: parsed.due,       type: 'text'   },
+    { id: 'f-priority', val: parsed.priority,  type: 'select' },
+    { id: 'f-estimate', val: parsed.estimate,  type: 'number' },
+    { id: 'f-assignee', val: parsed.assignee,  type: 'text'   }
+  ];
+  fields.forEach(function(f, i) {
+    var el = document.getElementById(f.id);
+    if (!el) return;
+    setTimeout(function() {
+      if (f.val !== null && f.val !== undefined && f.val !== '') {
+        el.value = f.val;
+      } else if (f.type !== 'select') {
+        // clear text/number fields on null, but leave selects at current value
+        el.value = '';
+      }
+      el.classList.add('ai-field-flash');
+      el.addEventListener('animationend', function() {
+        el.classList.remove('ai-field-flash');
+      }, { once: true });
+    }, i * 80);
+  });
+  showToast('✨ Fields filled by AI');
+}
+
+// ── SPEECH RECOGNITION — TASK ────────────────────────────
+var taskSpeechRecognition = null;
+var taskMicActive = false;
+
+function toggleTaskMic() {
+  if (taskMicActive) {
+    stopTaskMic();
+  } else {
+    startTaskMic();
+  }
+}
+
+function startTaskMic() {
+  var SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SpeechRecognition) return;
+  taskSpeechRecognition = new SpeechRecognition();
+  taskSpeechRecognition.lang = 'en-US';
+  taskSpeechRecognition.continuous = false;
+  taskSpeechRecognition.interimResults = false;
+  taskSpeechRecognition.onresult = function(e) {
+    var transcript = e.results[0][0].transcript;
+    var inp = document.getElementById('ai-task-input');
+    if (inp) {
+      inp.value = transcript;
+      inp.style.height = 'auto';
+      inp.style.height = inp.scrollHeight + 'px';
+    }
+    stopTaskMic();
+    // auto-parse after voice input
+    setTimeout(parseTaskWithAI, 300);
+  };
+  taskSpeechRecognition.onerror = function() { stopTaskMic(); };
+  taskSpeechRecognition.onend = function() { stopTaskMic(); };
+  taskSpeechRecognition.start();
+  taskMicActive = true;
+  var btn = document.getElementById('ai-task-mic');
+  if (btn) btn.classList.add('recording');
+}
+
+function stopTaskMic() {
+  taskMicActive = false;
+  var btn = document.getElementById('ai-task-mic');
+  if (btn) btn.classList.remove('recording');
+  if (taskSpeechRecognition) {
+    try { taskSpeechRecognition.stop(); } catch(e) {}
+    taskSpeechRecognition = null;
+  }
+}
+
+// ── SPEECH RECOGNITION — NOTES ───────────────────────────
+var noteSpeechRecognition = null;
+var noteMicActive = false;
+var noteInterimText = '';
+
+function toggleNoteMic() {
+  if (noteMicActive) {
+    stopNoteMic();
+  } else {
+    startNoteMic();
+  }
+}
+
+function startNoteMic() {
+  var SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SpeechRecognition) return;
+  noteSpeechRecognition = new SpeechRecognition();
+  noteSpeechRecognition.lang = 'en-US';
+  noteSpeechRecognition.continuous = true;
+  noteSpeechRecognition.interimResults = true;
+
+  noteSpeechRecognition.onresult = function(e) {
+    var interim = '';
+    var final = '';
+    for (var i = e.resultIndex; i < e.results.length; i++) {
+      if (e.results[i].isFinal) {
+        final += e.results[i][0].transcript;
+      } else {
+        interim += e.results[i][0].transcript;
+      }
+    }
+    var body = document.getElementById('note-body');
+    if (!body) return;
+    // remove previous interim placeholder
+    var ph = body.querySelector('.note-interim');
+    if (ph) ph.remove();
+    // append final text
+    if (final) {
+      // add line break before first dictation if body has content
+      if (body.innerText.trim() && !body.dataset.dictating) {
+        body.insertAdjacentHTML('beforeend', '<br>');
+        body.dataset.dictating = '1';
+      } else if (!body.dataset.dictating) {
+        body.dataset.dictating = '1';
+      }
+      // safe text insertion — preserves existing rich text
+      var textNode = document.createTextNode(final);
+      body.appendChild(textNode);
+      // auto-generate title from first sentence if empty
+      var titleEl = document.getElementById('note-title');
+      if (titleEl && !titleEl.value.trim()) {
+        var firstSentence = final.split(/[.!?]/)[0].trim();
+        if (firstSentence.length > 3 && firstSentence.length <= 60) {
+          titleEl.value = firstSentence;
+        }
+      }
+    }
+    // show interim as greyed placeholder
+    if (interim) {
+      var span = document.createElement('span');
+      span.className = 'note-interim';
+      span.style.cssText = 'color:var(--muted);opacity:.6';
+      span.textContent = interim;
+      body.appendChild(span);
+    }
+  };
+
+  noteSpeechRecognition.onerror = function(e) {
+    if (e.error !== 'no-speech') stopNoteMic();
+  };
+  noteSpeechRecognition.onend = function() {
+    // restart if still active (continuous mode can stop on silence)
+    if (noteMicActive) {
+      try { noteSpeechRecognition.start(); } catch(e) { stopNoteMic(); }
+    }
+  };
+
+  noteSpeechRecognition.start();
+  noteMicActive = true;
+  var btn = document.getElementById('note-mic-btn');
+  var lbl = document.getElementById('note-mic-label');
+  if (btn) btn.classList.add('recording');
+  if (lbl) lbl.textContent = 'Stop';
+}
+
+function stopNoteMic() {
+  noteMicActive = false;
+  var btn = document.getElementById('note-mic-btn');
+  var lbl = document.getElementById('note-mic-label');
+  if (btn) btn.classList.remove('recording');
+  if (lbl) lbl.textContent = 'Dictate';
+  // remove interim placeholder on stop
+  var body = document.getElementById('note-body');
+  if (body) {
+    var ph = body.querySelector('.note-interim');
+    if (ph) ph.remove();
+    delete body.dataset.dictating;
+  }
+  if (noteSpeechRecognition) {
+    try { noteSpeechRecognition.stop(); } catch(e) {}
+    noteSpeechRecognition = null;
+  }
+}
+
+// hide note mic if speech not supported
+function initNoteMic() {
+  if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+    var btn = document.getElementById('note-mic-btn');
+    var sep = document.getElementById('note-mic-sep');
+    if (btn) btn.style.display = 'none';
+    if (sep) sep.style.display = 'none';
+  }
+}
+
 function recurLabel(r) {
   if (!r) return '';
   if (r.type === 'daily')   return 'Every day';
@@ -3306,8 +3667,10 @@ function init() {
   initSidebarState();
   loadFocusSettings();
   loadSmartWeights();
+  loadGeminiKey();
   recoverFocusTimerState();
   showFocusTimer();
+  initNoteMic();
   // always reset to dashboard view on init
   showingNotes    = false;
   showingSettings = false;
@@ -3769,6 +4132,7 @@ function renderSettingsPage() {
   renderTrash();
   applyDarkMode();
   renderSmartWeightSliders();
+  renderSettingsAI();
   if (boardView) { renderBoardLabelFilters(); renderKanban(); }
   var durEl = document.getElementById('focus-duration-val');
   if (durEl) durEl.textContent = focusSettings.duration;
@@ -4096,6 +4460,10 @@ function openModal(id) {
   document.getElementById('subtask-input').value = '';
   renderModalSubtasks();
   renderModalLabelPicker();
+  renderAITaskBox();
+  // clear AI input box on open
+  var aiInp = document.getElementById('ai-task-input');
+  if (aiInp) { aiInp.value = ''; aiInp.style.height = 'auto'; }
   document.getElementById('modal').classList.add('open');
   setTimeout(function(){ document.getElementById('f-name').focus(); }, 100);
 }
@@ -4103,6 +4471,7 @@ function openModal(id) {
 function closeModal() {
   document.getElementById('modal').classList.remove('open');
   editingId = null;
+  stopTaskMic();
 }
 
 function handleBackdropClick(e) {
@@ -4402,6 +4771,7 @@ function saveNote() {
 }
 
 function cancelNote() {
+  stopNoteMic();
   document.getElementById('note-editor').style.display = 'none';
   document.getElementById('note-title').value = '';
   document.getElementById('note-body').innerHTML = '';
