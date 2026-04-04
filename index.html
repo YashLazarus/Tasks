@@ -1646,21 +1646,21 @@ function showAuthScreen() {
   document.getElementById('loading').style.display = 'none';
   var aw = document.getElementById('app-wrapper');
   if (aw) aw.style.display = 'none';
-  document.getElementById('auth-error').className = 'auth-error';
   // pre-fill email if we have a cached one — returning user
   try {
     var cachedEmail = localStorage.getItem('auth-email');
     var emailEl = document.getElementById('auth-email');
+    var errEl = document.getElementById('auth-error');
     if (cachedEmail && emailEl) {
       emailEl.value = cachedEmail;
-      // show friendly message — not a fresh logout
-      var errEl = document.getElementById('auth-error');
-      if (errEl) {
+      // only show session expired if no existing error message showing
+      if (errEl && !errEl.classList.contains('show')) {
         errEl.textContent = 'Your session expired. Please sign in again.';
         errEl.className = 'auth-error show';
       }
       setTimeout(function(){ document.getElementById('auth-password').focus(); }, 100);
     } else {
+      if (errEl) errEl.className = 'auth-error'; // clear any old error
       setTimeout(function(){ document.getElementById('auth-email').focus(); }, 100);
     }
   } catch(e) {
@@ -3208,7 +3208,8 @@ function parseTaskWithAI() {
 
   var today = padDate(new Date());
   var tomorrow = padDate(new Date(Date.now() + 86400000));
-  var prompt = 'Parse this task description into structured fields. Return ONLY valid JSON, no markdown, no explanation.\n\nToday is ' + today + '. Tomorrow is ' + tomorrow + '.\n\nInput: "' + text + '"\n\nReturn JSON with these fields (all optional except name):\n- name: string (task name, cleaned up)\n- due: string (YYYY-MM-DD format, null if not mentioned)\n- priority: "high" | "medium" | "low" (default "medium" if not mentioned)\n- estimate: number (minutes, null if not mentioned)\n- assignee: string (null if not mentioned)\n\nExamples:\n"call dentist tomorrow high priority 30 min" → {"name":"Call dentist","due":"' + tomorrow + '","priority":"high","estimate":30,"assignee":null}\n"team meeting friday with john" → {"name":"Team meeting","due":null,"priority":"medium","estimate":null,"assignee":"John"}';
+  var safeText = text.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
+  var prompt = 'Parse this task description into structured fields. Return ONLY valid JSON, no markdown, no explanation.\n\nToday is ' + today + '. Tomorrow is ' + tomorrow + '.\n\nInput: "' + safeText + '"\n\nReturn JSON with these fields (all optional except name):\n- name: string (task name, cleaned up)\n- due: string (YYYY-MM-DD format, null if not mentioned)\n- priority: "high" | "medium" | "low" (default "medium" if not mentioned)\n- estimate: number (minutes, null if not mentioned)\n- assignee: string (null if not mentioned)\n\nExamples:\n"call dentist tomorrow high priority 30 min" → {"name":"Call dentist","due":"' + tomorrow + '","priority":"high","estimate":30,"assignee":null}\n"team meeting friday with john" → {"name":"Team meeting","due":null,"priority":"medium","estimate":null,"assignee":"John"}';
 
   fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=' + geminiKey, {
     method: 'POST',
@@ -3222,7 +3223,13 @@ function parseTaskWithAI() {
   .then(function(data) {
     if (btn) { btn.disabled = false; btn.textContent = '✨ Parse'; }
     if (data.error) {
-      showToast('AI error: ' + (data.error.message || 'Unknown error'));
+      var errMsg = data.error.message || 'Unknown error';
+      var errCode = data.error.code;
+      if (errCode === 400) errMsg = 'Invalid API key or request';
+      else if (errCode === 403) errMsg = 'API key not authorised — enable Gemini API in Google Cloud Console';
+      else if (errCode === 404) errMsg = 'Model not found — check API key has Gemini access';
+      else if (errCode === 429) errMsg = 'Rate limit hit — try again in a moment';
+      showToast('AI error: ' + errMsg);
       return;
     }
     var raw = data.candidates && data.candidates[0] && data.candidates[0].content &&
@@ -3243,12 +3250,25 @@ function parseTaskWithAI() {
 }
 
 function applyAIParsedTask(parsed) {
+  // validate and sanitise parsed fields
+  var name = parsed.name ? String(parsed.name).trim().slice(0, 100) : null;
+  var due = parsed.due;
+  if (due) {
+    // validate YYYY-MM-DD format
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(due) || isNaN(new Date(due + 'T00:00:00'))) {
+      due = null; // invalid date — clear it
+    }
+  }
+  var priority = ['high','medium','low'].indexOf(parsed.priority) >= 0 ? parsed.priority : null;
+  var estimate = parsed.estimate ? Math.min(Math.max(parseInt(parsed.estimate) || 0, 1), 480) : null;
+  var assignee = parsed.assignee ? String(parsed.assignee).trim().slice(0, 50) : null;
+
   var fields = [
-    { id: 'f-name',     val: parsed.name,     type: 'text'   },
-    { id: 'f-due',      val: parsed.due,       type: 'text'   },
-    { id: 'f-priority', val: parsed.priority,  type: 'select' },
-    { id: 'f-estimate', val: parsed.estimate,  type: 'number' },
-    { id: 'f-assignee', val: parsed.assignee,  type: 'text'   }
+    { id: 'f-name',     val: name,     type: 'text'   },
+    { id: 'f-due',      val: due,      type: 'text'   },
+    { id: 'f-priority', val: priority, type: 'select' },
+    { id: 'f-estimate', val: estimate, type: 'number' },
+    { id: 'f-assignee', val: assignee, type: 'text'   }
   ];
   fields.forEach(function(f, i) {
     var el = document.getElementById(f.id);
@@ -3339,7 +3359,7 @@ function startNoteMic() {
   noteSpeechRecognition.continuous = true;
   noteSpeechRecognition.interimResults = true;
 
-  var finalTranscriptSoFar = ''; // tracks what's already been committed to the note
+  var lastProcessedIndex = -1; // track last final result index processed
 
   noteSpeechRecognition.onresult = function(e) {
     var interimTranscript = '';
@@ -3347,11 +3367,10 @@ function startNoteMic() {
 
     for (var i = 0; i < e.results.length; i++) {
       if (e.results[i].isFinal) {
-        var t = e.results[i][0].transcript;
-        // only append if this final segment is new (not already committed)
-        if (finalTranscriptSoFar.indexOf(t) === -1 || finalTranscriptSoFar.length === 0) {
-          newFinal += t;
-          finalTranscriptSoFar += t;
+        // only process final results we haven't committed yet
+        if (i > lastProcessedIndex) {
+          newFinal += e.results[i][0].transcript;
+          lastProcessedIndex = i;
         }
       } else {
         interimTranscript += e.results[i][0].transcript;
@@ -3400,6 +3419,7 @@ function startNoteMic() {
   noteSpeechRecognition.onend = function() {
     // restart if still active (continuous mode can stop on silence)
     if (noteMicActive) {
+      lastProcessedIndex = -1; // reset index — new session starts from 0
       try { noteSpeechRecognition.start(); } catch(e) { stopNoteMic(); }
     }
   };
