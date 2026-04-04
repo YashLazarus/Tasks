@@ -2508,6 +2508,8 @@ function focusSync() {
         mergeRecurState(data.recurState || {});
         // Use merge functions so deletion tracking is respected
         tasks    = mergeTasks(tasks,    data.tasks    || []);
+        // defensive: ensure no deleted tasks snuck back in
+        tasks = tasks.filter(function(t){ return !isDeleted(t.id); });
         notes    = mergeNotes(notes,    data.notes    || []);
         statuses = mergeStatuses(statuses, data.statuses || []);
         labels   = mergeLabels(labels,  data.labels   || []);
@@ -2653,6 +2655,8 @@ function loadFromCloud() {
       var cloudNotes = data.notes  || [];
       var cloudTrash = data.trash  || [];
       tasks    = mergeTasks(localTasks, cloudTasks);
+      // defensive: ensure no deleted tasks snuck back in
+      tasks = tasks.filter(function(t){ return !isDeleted(t.id); });
       notes    = mergeNotes(localNotes, cloudNotes);
       trash    = mergeTrash(trash.length ? trash : [], cloudTrash);
       statuses = mergeStatuses(
@@ -3206,7 +3210,7 @@ function parseTaskWithAI() {
   var tomorrow = padDate(new Date(Date.now() + 86400000));
   var prompt = 'Parse this task description into structured fields. Return ONLY valid JSON, no markdown, no explanation.\n\nToday is ' + today + '. Tomorrow is ' + tomorrow + '.\n\nInput: "' + text + '"\n\nReturn JSON with these fields (all optional except name):\n- name: string (task name, cleaned up)\n- due: string (YYYY-MM-DD format, null if not mentioned)\n- priority: "high" | "medium" | "low" (default "medium" if not mentioned)\n- estimate: number (minutes, null if not mentioned)\n- assignee: string (null if not mentioned)\n\nExamples:\n"call dentist tomorrow high priority 30 min" → {"name":"Call dentist","due":"' + tomorrow + '","priority":"high","estimate":30,"assignee":null}\n"team meeting friday with john" → {"name":"Team meeting","due":null,"priority":"medium","estimate":null,"assignee":"John"}';
 
-  fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=' + geminiKey, {
+  fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=' + geminiKey, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
