@@ -3246,7 +3246,11 @@ function callGeminiWithFallback(prompt, onSuccess, onError) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         contents: [{ parts: [{ text: prompt }] }],
-        generationConfig: { temperature: 0.1, maxOutputTokens: 256 }
+        generationConfig: {
+          temperature: 0,
+          maxOutputTokens: 1024,
+          responseMimeType: 'application/json'
+        }
       })
     })
     .then(function(r) { return r.json(); })
@@ -3254,27 +3258,27 @@ function callGeminiWithFallback(prompt, onSuccess, onError) {
       if (data.error) {
         var code = data.error.code;
         var msg = data.error.message || '';
-        // only try next model if it's a model-not-found or unavailable error
-        if (code === 404 || msg.indexOf('not found') >= 0 || msg.indexOf('not supported') >= 0) {
+        // try next model for any model-capability error
+        if (code === 404 || code === 400 ||
+            msg.indexOf('not found') >= 0 ||
+            msg.indexOf('not supported') >= 0 ||
+            msg.indexOf('invalid') >= 0) {
           tryModel(index + 1);
           return;
         }
-        // 429 with limit:0 means model not available in region — try next model
-        // 429 with actual quota exhausted — stop and report
+        // 429 with limit:0 means model not available in region — try next
         if (code === 429) {
           var details = data.error.details || [];
           var hasZeroLimit = details.some(function(d){ return d.metadata && d.metadata.quota_limit === '0'; });
           if (hasZeroLimit || msg.indexOf('not supported') >= 0) {
-            tryModel(index + 1); // model unavailable in region — try next
+            tryModel(index + 1);
             return;
           }
           onError('Rate limit reached — wait a minute and try again');
           return;
         }
-        var errMsg = data.error.message || 'Unknown error';
-        if (code === 400) errMsg = 'Invalid request — try a different API key';
-        else if (code === 403) errMsg = 'API key not authorised — get a key from aistudio.google.com';
-        onError(errMsg);
+        if (code === 403) { onError('API key not authorised — get a key from aistudio.google.com'); return; }
+        onError(msg || 'Unknown AI error');
         return;
       }
       var raw = data.candidates && data.candidates[0] && data.candidates[0].content &&
@@ -3299,15 +3303,28 @@ function parseTaskWithAI() {
   var today = padDate(new Date());
   var tomorrow = padDate(new Date(Date.now() + 86400000));
   var safeText = text.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
-  var prompt = 'Parse this task description into structured fields. Return ONLY valid JSON, no markdown, no explanation.\n\nToday is ' + today + '. Tomorrow is ' + tomorrow + '.\n\nInput: "' + safeText + '"\n\nReturn JSON with these fields (all optional except name):\n- name: string (task name, cleaned up)\n- due: string (YYYY-MM-DD format, null if not mentioned)\n- priority: "high" | "medium" | "low" (default "medium" if not mentioned)\n- estimate: number (minutes, null if not mentioned)\n- assignee: string (null if not mentioned)\n\nExamples:\n"call dentist tomorrow high priority 30 min" → {"name":"Call dentist","due":"' + tomorrow + '","priority":"high","estimate":30,"assignee":null}\n"team meeting friday with john" → {"name":"Team meeting","due":null,"priority":"medium","estimate":null,"assignee":"John"}';
+  var prompt = 'Extract task fields from this description. Today is ' + today + '.\n\nDescription: ' + safeText + '\n\nReturn a JSON object with:\n- name: cleaned task name (string, required)\n- due: date in YYYY-MM-DD format, or null\n- priority: "high", "medium", or "low"\n- estimate: duration in minutes as number, or null\n- assignee: person name or null\n\nFor dates: "today"=' + today + ', "tomorrow"=' + tomorrow + ', use the next occurrence for day names like "friday".';
 
   callGeminiWithFallback(
     prompt,
     function(raw) {
       if (btn) { btn.disabled = false; btn.textContent = '✨ Parse'; }
+      // strip markdown fences
       raw = raw.replace(/```json|```/g, '').trim();
+      // extract JSON object — find first { and last } to handle extra text around it
+      var start = raw.indexOf('{');
+      var end = raw.lastIndexOf('}');
+      if (start === -1 || end === -1 || end < start) {
+        showToast('Could not parse AI response — try again');
+        return;
+      }
+      raw = raw.slice(start, end + 1);
       var parsed;
-      try { parsed = JSON.parse(raw); } catch(e) { showToast('Could not parse AI response'); return; }
+      try { parsed = JSON.parse(raw); } catch(e) {
+        console.log('AI raw response:', raw);
+        showToast('Could not parse AI response — try again');
+        return;
+      }
       applyAIParsedTask(parsed);
       inp.value = '';
       inp.style.height = 'auto';
@@ -3330,7 +3347,8 @@ function applyAIParsedTask(parsed) {
     }
   }
   var priority = ['high','medium','low'].indexOf(parsed.priority) >= 0 ? parsed.priority : null;
-  var estimate = parsed.estimate ? Math.min(Math.max(parseInt(parsed.estimate) || 0, 1), 480) : null;
+  var estimateRaw = parseInt(parsed.estimate);
+  var estimate = (!isNaN(estimateRaw) && estimateRaw > 0) ? Math.min(estimateRaw, 480) : null;
   var assignee = parsed.assignee ? String(parsed.assignee).trim().slice(0, 50) : null;
 
   var fields = [
