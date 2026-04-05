@@ -2532,6 +2532,7 @@ function focusSync() {
         setSyncStatus('synced', 'Synced');
       }
       fetchFocusSessions(); // always sync sessions regardless of task data state
+      loadGeminiKeyFromCloud(); // sync API key across devices
     })
     .catch(function(){ setSyncStatus('error', 'Sync failed'); });
   });
@@ -2683,6 +2684,7 @@ function loadFromCloud() {
     setSyncStatus('synced', 'Synced');
     init();
     fetchFocusSessions();
+    loadGeminiKeyFromCloud();
   })
   .catch(function() {
     // network error — fall back to local data, work offline
@@ -3153,12 +3155,46 @@ function saveGeminiKey() {
     geminiKey = null;
     try { localStorage.removeItem('gemini-api-key'); } catch(e) {}
     setGeminiKeyStatus('Key removed', 'var(--muted)');
+    syncGeminiKeyToCloud(null);
   } else {
     geminiKey = key;
     try { localStorage.setItem('gemini-api-key', key); } catch(e) {}
     setGeminiKeyStatus('✓ Key saved', '#16a34a');
+    syncGeminiKeyToCloud(key);
   }
   renderAITaskBox();
+}
+
+function syncGeminiKeyToCloud(key) {
+  if (!currentUser) return;
+  ensureValidToken().then(function(valid) {
+    if (valid !== 'ok') return;
+    var url = FIREBASE_DB_URL + '/users/' + currentUser.uid + '/settings/geminiKey.json?auth=' + currentUser.idToken;
+    fetch(url, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(key)
+    }).catch(function(){});
+  });
+}
+
+function loadGeminiKeyFromCloud() {
+  if (!currentUser) return Promise.resolve();
+  return ensureValidToken().then(function(valid) {
+    if (valid !== 'ok') return;
+    var url = FIREBASE_DB_URL + '/users/' + currentUser.uid + '/settings/geminiKey.json?auth=' + currentUser.idToken;
+    return fetch(url)
+      .then(function(r){ return r.json(); })
+      .then(function(data) {
+        if (data && typeof data === 'string' && data.trim()) {
+          geminiKey = data.trim();
+          try { localStorage.setItem('gemini-api-key', geminiKey); } catch(e) {}
+          renderAITaskBox();
+          renderSettingsAI();
+        }
+      })
+      .catch(function(){});
+  });
 }
 
 function onGeminiKeyInput() {
@@ -3196,7 +3232,61 @@ function renderAITaskBox() {
   }
 }
 
-// ── AI TASK PARSING ──────────────────────────────────────
+function callGeminiWithFallback(prompt, onSuccess, onError) {
+  var models = [
+    'gemini-2.5-flash',        // latest, free tier
+    'gemini-1.5-flash',        // confirmed free tier fallback
+    'gemini-1.5-flash-latest'  // last resort
+  ];
+  var tryModel = function(index) {
+    if (index >= models.length) { onError('Could not reach AI — check your API key at aistudio.google.com'); return; }
+    var model = models[index];
+    fetch('https://generativelanguage.googleapis.com/v1beta/models/' + model + ':generateContent?key=' + geminiKey, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        contents: [{ parts: [{ text: prompt }] }],
+        generationConfig: { temperature: 0.1, maxOutputTokens: 256 }
+      })
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      if (data.error) {
+        var code = data.error.code;
+        var msg = data.error.message || '';
+        // only try next model if it's a model-not-found or unavailable error
+        if (code === 404 || msg.indexOf('not found') >= 0 || msg.indexOf('not supported') >= 0) {
+          tryModel(index + 1);
+          return;
+        }
+        // 429 with limit:0 means model not available in region — try next model
+        // 429 with actual quota exhausted — stop and report
+        if (code === 429) {
+          var details = data.error.details || [];
+          var hasZeroLimit = details.some(function(d){ return d.metadata && d.metadata.quota_limit === '0'; });
+          if (hasZeroLimit || msg.indexOf('not supported') >= 0) {
+            tryModel(index + 1); // model unavailable in region — try next
+            return;
+          }
+          onError('Rate limit reached — wait a minute and try again');
+          return;
+        }
+        var errMsg = data.error.message || 'Unknown error';
+        if (code === 400) errMsg = 'Invalid request — try a different API key';
+        else if (code === 403) errMsg = 'API key not authorised — get a key from aistudio.google.com';
+        onError(errMsg);
+        return;
+      }
+      var raw = data.candidates && data.candidates[0] && data.candidates[0].content &&
+                data.candidates[0].content.parts && data.candidates[0].content.parts[0].text;
+      if (!raw) { onError('AI returned no result'); return; }
+      onSuccess(raw);
+    })
+    .catch(function() { tryModel(index + 1); });
+  };
+  tryModel(0);
+}
+
 function parseTaskWithAI() {
   var inp = document.getElementById('ai-task-input');
   var btn = document.getElementById('ai-parse-btn');
@@ -3211,42 +3301,22 @@ function parseTaskWithAI() {
   var safeText = text.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
   var prompt = 'Parse this task description into structured fields. Return ONLY valid JSON, no markdown, no explanation.\n\nToday is ' + today + '. Tomorrow is ' + tomorrow + '.\n\nInput: "' + safeText + '"\n\nReturn JSON with these fields (all optional except name):\n- name: string (task name, cleaned up)\n- due: string (YYYY-MM-DD format, null if not mentioned)\n- priority: "high" | "medium" | "low" (default "medium" if not mentioned)\n- estimate: number (minutes, null if not mentioned)\n- assignee: string (null if not mentioned)\n\nExamples:\n"call dentist tomorrow high priority 30 min" → {"name":"Call dentist","due":"' + tomorrow + '","priority":"high","estimate":30,"assignee":null}\n"team meeting friday with john" → {"name":"Team meeting","due":null,"priority":"medium","estimate":null,"assignee":"John"}';
 
-  fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=' + geminiKey, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      contents: [{ parts: [{ text: prompt }] }],
-      generationConfig: { temperature: 0.1, maxOutputTokens: 256 }
-    })
-  })
-  .then(function(r) { return r.json(); })
-  .then(function(data) {
-    if (btn) { btn.disabled = false; btn.textContent = '✨ Parse'; }
-    if (data.error) {
-      var errMsg = data.error.message || 'Unknown error';
-      var errCode = data.error.code;
-      if (errCode === 400) errMsg = 'Invalid API key or request';
-      else if (errCode === 403) errMsg = 'API key not authorised — enable Gemini API in Google Cloud Console';
-      else if (errCode === 404) errMsg = 'Model not found — check API key has Gemini access';
-      else if (errCode === 429) errMsg = 'Rate limit hit — try again in a moment';
-      showToast('AI error: ' + errMsg);
-      return;
+  callGeminiWithFallback(
+    prompt,
+    function(raw) {
+      if (btn) { btn.disabled = false; btn.textContent = '✨ Parse'; }
+      raw = raw.replace(/```json|```/g, '').trim();
+      var parsed;
+      try { parsed = JSON.parse(raw); } catch(e) { showToast('Could not parse AI response'); return; }
+      applyAIParsedTask(parsed);
+      inp.value = '';
+      inp.style.height = 'auto';
+    },
+    function(errMsg) {
+      if (btn) { btn.disabled = false; btn.textContent = '✨ Parse'; }
+      showToast('AI: ' + errMsg);
     }
-    var raw = data.candidates && data.candidates[0] && data.candidates[0].content &&
-              data.candidates[0].content.parts && data.candidates[0].content.parts[0].text;
-    if (!raw) { showToast('AI returned no result'); return; }
-    // strip markdown fences if present
-    raw = raw.replace(/```json|```/g, '').trim();
-    var parsed;
-    try { parsed = JSON.parse(raw); } catch(e) { showToast('Could not parse AI response'); return; }
-    applyAIParsedTask(parsed);
-    inp.value = '';
-    inp.style.height = 'auto';
-  })
-  .catch(function() {
-    if (btn) { btn.disabled = false; btn.textContent = '✨ Parse'; }
-    showToast('AI request failed — check your API key');
-  });
+  );
 }
 
 function applyAIParsedTask(parsed) {
